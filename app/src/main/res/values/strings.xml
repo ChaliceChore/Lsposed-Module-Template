@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- app_name, app_description and target_label come from gradle.properties (resValue). -->
+<resources>
+    <string name="back">Back</string>
+
+    <!-- Status card -->
+    <string name="status_active_title">Module active</string>
+    <string name="status_framework">%1$s %2$s (API %3$d)</string>
+    <string name="status_inactive_title">Module not active</string>
+    <string name="status_inactive_body">Turn it on in your Xposed manager</string>
+    <string name="status_applying_title">Applying changes</string>
+    <string name="status_step_saving">Saving settings</string>
+    <string name="status_step_restarting">Restarting %1$s</string>
+
+    <!-- Home -->
+    <string name="section_always_on">Always on</string>
+    <string name="always_on_title">Placeholder built-in behavior</string>
+    <string name="always_on_summary">Something the module always does</string>
+    <string name="section_features">Features</string>
+    <string name="features_footnote">Changes take effect after %1$s restarts.</string>
+    <string name="section_app">App</string>
+    <string name="appearance_title">Appearance and icon</string>
+    <string name="about_title">About</string>
+    <string name="about_summary">Version, links and licenses</string>
+    <string name="category_summary_off">Off</string>
+    <string name="category_summary_on_single">On</string>
+    <string name="category_summary_on">%1$d of %2$d on</string>
+
+    <!-- TEMPLATE: placeholder categories and switches. -->
+    <string name="category_general">General</string>
+    <string name="category_interface">Interface</string>
+    <string name="category_advanced">Advanced</string>
+    <string name="feature_one">Feature one</string>
+    <string name="feature_one_summary">Placeholder summary for feature one</string>
+    <string name="feature_two">Feature two</string>
+    <string name="feature_two_summary">Placeholder summary for feature two</string>
+    <string name="feature_three">Feature three</string>
+    <string name="feature_three_summary">Placeholder summary for feature three</string>
+    <string name="feature_four">Feature four</string>
+    <string name="feature_four_summary">Placeholder summary for feature four</string>
+    <string name="feature_five">Feature five</string>
+    <string name="feature_five_summary">Placeholder summary for feature five</string>
+    <string name="feature_six">Feature six</string>
+    <string name="feature_six_summary">Placeholder summary for feature six</string>
+    <string name="section_options">Options</string>
+    <string name="option_choice_title">Placeholder choice</string>
+    <string name="option_choice_a">Choice A</string>
+    <string name="option_choice_b">Choice B</string>
+    <string name="option_choice_c">Choice C</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
+
+    <!-- Apply sheet -->
+    <plurals name="pending_changes">
+        <item quantity="one">%d change not applied yet</item>
+        <item quantity="other">%d changes not applied yet</item>
+    </plurals>
+    <string name="pending_areas_more">%1$s and %2$d more</string>
+    <string name="pending_saved_on_device">Saved on this device. Turn the module on in your Xposed manager to apply them</string>
+    <string name="pending_change_on">On</string>
+    <string name="pending_change_off">Off</string>
+    <string name="apply_and_restart">Apply and restart %1$s</string>
+    <string name="apply_not_sent_title">Settings weren\'t sent</string>
+    <string name="apply_not_sent_body">Your Xposed manager didn\'t accept them. Try again</string>
+    <string name="apply_restart_failed_title">%1$s didn\'t restart</string>
+    <string name="apply_restart_failed_body">Settings were saved. Close %1$s from its app info, then open it again</string>
+    <string name="apply_app_info">App info</string>
+    <string name="apply_try_again">Try again</string>
+
+    <!-- Appearance -->
+    <string name="appearance_theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="appearance_summary_system">System theme</string>
+    <string name="appearance_summary_light">Light theme</string>
+    <string name="appearance_summary_dark">Dark theme</string>
+    <string name="appearance_summary_dynamic_color">dynamic color</string>
+    <string name="appearance_summary_icon_hidden">icon hidden</string>
+    <string name="dynamic_color_title">Dynamic color</string>
+    <string name="dynamic_color_summary">Colors from your wallpaper</string>
+    <string name="section_launcher">Launcher</string>
+    <string name="launcher_icon_title">Show launcher icon</string>
+    <string name="launcher_icon_summary">Settings stay reachable from your Xposed manager</string>
+    <string name="launcher_icon_hide_title">Hide launcher icon?</string>
+    <string name="launcher_icon_hide_body">Open these settings from your Xposed manager afterwards.</string>
+    <string name="launcher_icon_hide_confirm">Hide</string>
+
+    <!-- About -->
+    <string name="about_whats_new">What\'s new</string>
+    <string name="about_whats_new_summary">Changes in version %1$s</string>
+    <string name="about_changelog">Changelog</string>
+    <string name="about_changelog_summary">Notes for every release</string>
+    <string name="about_source_code">Source code</string>
+    <string name="about_issues">Suggest a feature or report a bug</string>
+    <string name="about_issues_summary">Opens the issue form on GitHub</string>
+    <string name="about_licenses">Open source licenses</string>
+    <string name="about_licenses_summary">Libraries this app uses</string>
+    <string name="about_star_on_github">Star on GitHub</string>
+    <string name="about_releases">Releases</string>
+</resources>

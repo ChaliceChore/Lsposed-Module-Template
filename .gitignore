@@ -1,0 +1,12 @@
+build/
+.gradle/
+.kotlin/
+local.properties
+*.apk
+*.iml
+.idea/
+
+# Signing keys and their passwords: never commit, even if copied in by mistake.
+*.jks
+*.keystore
+keystore.properties
