@@ -53,6 +53,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import io.github.chalicechore.moduletemplate.ui.TranslatedLanguages
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -310,13 +312,16 @@ private fun LanguageRow(shape: Shape) {
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()).selectableGroup()) {
                 options.forEach { tag ->
+                    val available = tag == null || tag in TranslatedLanguages
                     Row(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 48.dp)
+                                .alpha(if (available) 1f else 0.38f)
                                 .selectable(
                                     selected = tag == current,
+                                    enabled = available,
                                     role = Role.RadioButton,
                                     onClick = {
                                         haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
@@ -326,9 +331,18 @@ private fun LanguageRow(shape: Shape) {
                                 ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(selected = tag == current, onClick = null)
+                        RadioButton(selected = tag == current, onClick = null, enabled = available)
                         Spacer(Modifier.width(16.dp))
-                        Text(tag?.let(::languageName) ?: systemDefault, style = MaterialTheme.typography.bodyLarge)
+                        Column {
+                            Text(tag?.let(::languageName) ?: systemDefault, style = MaterialTheme.typography.bodyLarge)
+                            if (!available) {
+                                Text(
+                                    stringResource(R.string.language_not_translated),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
             }

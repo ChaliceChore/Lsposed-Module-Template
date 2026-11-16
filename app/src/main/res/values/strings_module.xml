@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TEMPLATE: this module's own wording: what's always on, categories, features and options.
+  Replace all of it in a real module. Not sent to Weblate; the demo_ and category_components
+  strings go with ComponentsDemoScreen when it's deleted.
+-->
+<resources>
+    <string name="always_on_title">Placeholder built-in behavior</string>
+    <string name="always_on_summary">Something the module always does</string>
+    <string name="category_general">General</string>
+    <string name="category_interface">Interface</string>
+    <string name="category_advanced">Advanced</string>
+    <string name="category_components">Components</string>
+    <string name="category_components_summary">Template demo of the optional rows and pickers</string>
+    <string name="demo_intro">These are optional building blocks. Nothing here is saved; each one lives in its own file under ui/component.</string>
+    <string name="demo_preview">Live preview</string>
+    <string name="demo_preview_button">Button</string>
+    <string name="demo_rows">Rows and pickers</string>
+    <string name="demo_split_title">Custom button style</string>
+    <string name="demo_split_on">On. Tap for options</string>
+    <string name="demo_split_off">Off. Uses the default look</string>
+    <string name="demo_rounded_title">Rounded corners</string>
+    <string name="demo_rounded_summary">Pill shape instead of square corners</string>
+    <string name="demo_filler_title">Example option %1$d</string>
+    <string name="demo_filler_summary">Scroll to see the preview stay pinned</string>
+    <string name="demo_expandable_title">Notification kinds</string>
+    <string name="demo_kind_alerting">Alerting</string>
+    <string name="demo_kind_silent">Silent</string>
+    <string name="demo_kind_ongoing">Ongoing</string>
+    <string name="demo_chips_title">Text weight</string>
+    <string name="demo_weight_regular">Regular</string>
+    <string name="demo_weight_medium">Medium</string>
+    <string name="demo_weight_semibold">Semibold</string>
+    <string name="demo_weight_bold">Bold</string>
+    <string name="demo_duration_title">Show for</string>
+    <string name="demo_color_title">Button color</string>
+    <string name="demo_app_title">Target app</string>
+    <string name="demo_app_none">None chosen</string>
+    <string name="demo_try_out">Try it out</string>
+    <string name="demo_try_out_title">Reverse text</string>
+    <string name="demo_try_out_label">Type something</string>
+    <string name="feature_one">Feature one</string>
+    <string name="feature_one_summary">Placeholder summary for feature one</string>
+    <string name="feature_two">Feature two</string>
+    <string name="feature_two_summary">Placeholder summary for feature two</string>
+    <string name="feature_three">Feature three</string>
+    <string name="feature_three_summary">Placeholder summary for feature three</string>
+    <string name="feature_four">Feature four</string>
+    <string name="feature_four_summary">Placeholder summary for feature four</string>
+    <string name="feature_five">Feature five</string>
+    <string name="feature_five_summary">Placeholder summary for feature five</string>
+    <string name="feature_six">Feature six</string>
+    <string name="feature_six_summary">Placeholder summary for feature six</string>
+    <string name="option_choice_title">Placeholder choice</string>
+    <string name="option_choice_a">Choice A</string>
+    <string name="option_choice_b">Choice B</string>
+    <string name="option_choice_c">Choice C</string>
+</resources>

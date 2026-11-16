@@ -232,13 +232,22 @@ Each component is in its own file in `ui/component/`.
 
 ## Phase G: Localization
 
-### G1. Translations
-- `values-xx/strings.xml` files for: es, pt-BR, fr, de, ru, zh-CN, zh-TW, ja, in, tr, vi and ar.
+### G0. String split (done)
+- `res/values/strings_template.xml`: shared template wording every module keeps. This is the only
+  file that gets translated and the only one Weblate tracks.
+- `res/values/strings_module.xml`: each module's own wording (features, categories, options,
+  demo). Replaced by each module, never translated by the template.
+- The Language picker lists all 12 languages, but only those in `TranslatedLanguages` can be
+  picked. The rest are greyed out with "Not translated yet".
+
+### G1. Translations (deferred until layout and wording are final)
+- `values-xx/strings_template.xml` only, for: es, pt-BR, fr, de, ru, zh-CN, zh-TW, ja, in, tr,
+  vi and ar. Each finished language is added to `TranslatedLanguages`.
 - URLs, names and other strings that must not be translated are marked `translatable="false"`.
 - Arabic gets a right-to-left check: mirrored icons, slide transitions and the split card.
 
 ### G2. Weblate readiness
-- The repo layout is set up to work with Weblate.
+- The repo layout is set up to work with Weblate, with `strings_template.xml` as the one component.
 - The README gets a section on how to connect Weblate: create the component, add the webhook,
   and push changes as pull requests.
 - Translations are labelled as machine-written, with an invitation to correct them.

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- app_name, app_description and target_label come from gradle.properties (resValue). -->
+<!--
+  Shared template wording. Modules keep this file as it is, so it is the only file translated
+  (on Weblate). Change wording here only when it should change for every module.
+  app_name, app_description and target_label come from gradle.properties (resValue).
+-->
 <resources>
     <string name="back">Back</string>
 
@@ -27,8 +31,6 @@
 
     <!-- Home -->
     <string name="section_always_on">Always on</string>
-    <string name="always_on_title">Placeholder built-in behavior</string>
-    <string name="always_on_summary">Something the module always does</string>
     <string name="section_features">Features</string>
     <string name="features_footnote">Changes take effect after %1$s restarts.</string>
     <string name="section_app">App</string>
@@ -38,13 +40,6 @@
     <string name="category_summary_off">Off</string>
     <string name="category_summary_on_single">On</string>
     <string name="category_summary_on">%1$d of %2$d on</string>
-
-    <!-- TEMPLATE: placeholder categories and switches. -->
-    <string name="category_general">General</string>
-    <string name="category_interface">Interface</string>
-    <string name="category_advanced">Advanced</string>
-    <string name="category_components">Components</string>
-    <string name="category_components_summary">Template demo of the optional rows and pickers</string>
     <string name="preview_label">Preview</string>
     <string name="expandable_all">All</string>
     <string name="expandable_none">None</string>
@@ -64,50 +59,7 @@
     <string name="app_picker_installed">Installed</string>
     <string name="app_picker_system">System</string>
     <string name="app_picker_none">No apps match</string>
-    <string name="demo_intro">These are optional building blocks. Nothing here is saved; each one lives in its own file under ui/component.</string>
-    <string name="demo_preview">Live preview</string>
-    <string name="demo_preview_button">Button</string>
-    <string name="demo_rows">Rows and pickers</string>
-    <string name="demo_split_title">Custom button style</string>
-    <string name="demo_split_on">On. Tap for options</string>
-    <string name="demo_split_off">Off. Uses the default look</string>
-    <string name="demo_rounded_title">Rounded corners</string>
-    <string name="demo_rounded_summary">Pill shape instead of square corners</string>
-    <string name="demo_filler_title">Example option %1$d</string>
-    <string name="demo_filler_summary">Scroll to see the preview stay pinned</string>
-    <string name="demo_expandable_title">Notification kinds</string>
-    <string name="demo_kind_alerting">Alerting</string>
-    <string name="demo_kind_silent">Silent</string>
-    <string name="demo_kind_ongoing">Ongoing</string>
-    <string name="demo_chips_title">Text weight</string>
-    <string name="demo_weight_regular">Regular</string>
-    <string name="demo_weight_medium">Medium</string>
-    <string name="demo_weight_semibold">Semibold</string>
-    <string name="demo_weight_bold">Bold</string>
-    <string name="demo_duration_title">Show for</string>
-    <string name="demo_color_title">Button color</string>
-    <string name="demo_app_title">Target app</string>
-    <string name="demo_app_none">None chosen</string>
-    <string name="demo_try_out">Try it out</string>
-    <string name="demo_try_out_title">Reverse text</string>
-    <string name="demo_try_out_label">Type something</string>
-    <string name="feature_one">Feature one</string>
-    <string name="feature_one_summary">Placeholder summary for feature one</string>
-    <string name="feature_two">Feature two</string>
-    <string name="feature_two_summary">Placeholder summary for feature two</string>
-    <string name="feature_three">Feature three</string>
-    <string name="feature_three_summary">Placeholder summary for feature three</string>
-    <string name="feature_four">Feature four</string>
-    <string name="feature_four_summary">Placeholder summary for feature four</string>
-    <string name="feature_five">Feature five</string>
-    <string name="feature_five_summary">Placeholder summary for feature five</string>
-    <string name="feature_six">Feature six</string>
-    <string name="feature_six_summary">Placeholder summary for feature six</string>
     <string name="section_options">Options</string>
-    <string name="option_choice_title">Placeholder choice</string>
-    <string name="option_choice_a">Choice A</string>
-    <string name="option_choice_b">Choice B</string>
-    <string name="option_choice_c">Choice C</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>
 
@@ -264,4 +216,5 @@
     <string name="about_licenses_summary">Libraries this app uses</string>
     <string name="about_star_on_github">Star on GitHub</string>
     <string name="about_kofi">Ko-fi</string>
+    <string name="language_not_translated">Not translated yet</string>
 </resources>

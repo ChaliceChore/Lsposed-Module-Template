@@ -6,11 +6,16 @@ import java.util.Locale
 
 /**
  * TEMPLATE: the app's languages, as BCP 47 tags. Keep in sync with `localeFilters` in
- * app/build.gradle.kts and the res/values-xx folders. The Language row hides itself when there's
- * only one.
+ * app/build.gradle.kts and the res/values-xx folders.
  */
 val AppLanguages =
     listOf("en", "es", "pt-BR", "fr", "de", "ru", "zh-CN", "zh-TW", "ja", "id", "tr", "vi", "ar")
+
+/**
+ * Languages with a finished strings_template.xml translation. The others are listed in the
+ * picker but greyed out with "Not translated yet". Add a tag here once its values-xx folder exists.
+ */
+val TranslatedLanguages = setOf("en")
 
 /** A language's name written in that language, e.g. "Español", "日本語". */
 fun languageName(tag: String): String {
