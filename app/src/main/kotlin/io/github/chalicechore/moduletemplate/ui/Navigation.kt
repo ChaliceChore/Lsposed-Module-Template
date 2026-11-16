@@ -51,6 +51,7 @@ import io.github.chalicechore.moduletemplate.ui.component.ApplySheetScaffold
 import io.github.chalicechore.moduletemplate.ui.component.PendingChange
 import io.github.chalicechore.moduletemplate.ui.screen.AboutScreen
 import io.github.chalicechore.moduletemplate.ui.screen.BackupRestoreGroup
+import io.github.chalicechore.moduletemplate.ui.screen.ComponentsDemoScreen
 import io.github.chalicechore.moduletemplate.ui.screen.AppearanceScreen
 import io.github.chalicechore.moduletemplate.ui.screen.CategoryScreen
 import io.github.chalicechore.moduletemplate.ui.screen.HomeScreen
@@ -84,6 +85,9 @@ sealed interface Destination {
 
     data object FeatureHealth : Destination
 
+    /** TEMPLATE demo of the optional components (ModuleConfig.DEMO_COMPONENTS). */
+    data object Components : Destination
+
     fun toRoute(): String =
         when (this) {
             Home -> HOME
@@ -94,6 +98,7 @@ sealed interface Destination {
             Licenses -> LICENSES
             MoreModules -> MORE_MODULES
             FeatureHealth -> FEATURE_HEALTH
+            Components -> COMPONENTS
         }
 
     companion object {
@@ -105,6 +110,7 @@ sealed interface Destination {
         private const val SEARCH = "search"
         private const val MORE_MODULES = "more_modules"
         private const val FEATURE_HEALTH = "feature_health"
+        private const val COMPONENTS = "components"
 
         fun fromRoute(route: String): Destination =
             when {
@@ -126,6 +132,10 @@ sealed interface Destination {
 
                 route == FEATURE_HEALTH -> {
                     FeatureHealth
+                }
+
+                route == COMPONENTS -> {
+                    Components
                 }
 
                 route == SEARCH -> {
@@ -241,6 +251,7 @@ private fun SettingsNavigation(
                             onOpenAbout = { backStack.add(Destination.About) },
                             onModuleEnabledChange = viewModel::setModuleEnabled,
                             onOpenHealth = { backStack.add(Destination.FeatureHealth) },
+                            onOpenComponents = if (ModuleConfig.DEMO_COMPONENTS) ({ backStack.add(Destination.Components) }) else null,
                             onApply = viewModel::apply,
                             onOpenSearch = if (ModuleConfig.SEARCH) ({ backStack.add(Destination.Search) }) else null,
                         )
@@ -279,6 +290,9 @@ private fun SettingsNavigation(
                             },
                             onBack = { popIfTop(Destination.About) },
                         )
+                    }
+                    entry<Destination.Components> {
+                        ComponentsDemoScreen(onBack = { popIfTop(Destination.Components) })
                     }
                     entry<Destination.Search> {
                         SearchScreen(

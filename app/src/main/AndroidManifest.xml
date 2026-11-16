@@ -9,6 +9,11 @@
     <!-- TEMPLATE: lets the app see the hooked package (app info, restart). -->
     <queries>
         <package android:name="com.example.target" />
+        <!-- TEMPLATE: for the app picker (#14). Lists launchable apps without QUERY_ALL_PACKAGES. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application

@@ -56,6 +56,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -110,6 +111,7 @@ fun HomeScreen(
     onOpenHealth: () -> Unit,
     onApply: () -> Unit,
     onOpenSearch: (() -> Unit)? = null,
+    onOpenComponents: (() -> Unit)? = null,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val bottomPadding = listBottomPadding()
@@ -238,6 +240,18 @@ fun HomeScreen(
                             vertical = 12.dp,
                         ),
                 )
+            }
+            if (onOpenComponents != null) {
+                item(key = "components", contentType = "category") {
+                    NavigationRow(
+                        shape = shapeForPosition(1, 0),
+                        icon = Icons.Outlined.Widgets,
+                        title = stringResource(R.string.category_components),
+                        summary = stringResource(R.string.category_components_summary),
+                        onClick = onOpenComponents,
+                        modifier = Modifier.padding(horizontal = Tokens.ScreenMargin).padding(top = Tokens.ScreenMargin),
+                    )
+                }
             }
             item(key = "app_header", contentType = "header") {
                 SectionHeader(stringResource(R.string.section_app))
