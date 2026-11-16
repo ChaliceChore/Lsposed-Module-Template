@@ -38,5 +38,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+
+        <!-- Status reports from the hook inside the target. Exported, but StatusProvider only
+             accepts calls from the target app's uid. -->
+        <provider
+            android:name=".StatusProvider"
+            android:authorities="${applicationId}.status"
+            android:exported="true" />
     </application>
 </manifest>
