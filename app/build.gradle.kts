@@ -1,3 +1,6 @@
+import java.net.HttpURLConnection
+import java.net.URI
+
 import java.util.Properties
 
 plugins {
@@ -53,7 +56,10 @@ android {
     }
 
     androidResources {
-        localeFilters += "en"
+        // TEMPLATE: the app's languages (keep in sync with ui/Languages.kt). Filters out the other
+        // languages bundled by libraries, and lists these in the generated locale config.
+        localeFilters += listOf("en", "es", "pt-rBR", "fr", "de", "ru", "zh-rCN", "zh-rTW", "ja", "in", "tr", "vi", "ar")
+        generateLocaleConfig = true
     }
 
     dependenciesInfo {
@@ -136,6 +142,7 @@ dependencies {
     implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.preferences)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -193,3 +200,59 @@ androidComponents {
         )
     }
 }
+
+/**
+ * Refreshes the bundled "More modules" snapshot (src/main/assets/more_modules.json) from the
+ * GitHub API: the owner's repos tagged lsposed-module. Runs before every release build; when
+ * offline it keeps the existing file. Run it by hand with `./gradlew updateMoreModules`.
+ */
+abstract class UpdateMoreModules : DefaultTask() {
+    @get:Input
+    abstract val owner: Property<String>
+
+    @get:Internal
+    abstract val snapshot: RegularFileProperty
+
+    init {
+        outputs.upToDateWhen { false }
+    }
+
+    @TaskAction
+    fun update() {
+        val file = snapshot.get().asFile
+        try {
+            val connection =
+                URI("https://api.github.com/users/${owner.get()}/repos?per_page=100")
+                    .toURL()
+                    .openConnection() as HttpURLConnection
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 10_000
+            connection.setRequestProperty("Accept", "application/vnd.github+json")
+            connection.setRequestProperty("User-Agent", "lsposed-module-build")
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            val keep = listOf("name", "full_name", "description", "stargazers_count", "html_url", "default_branch", "topics", "fork", "archived", "private")
+            val repos = groovy.json.JsonSlurper().parseText(body) as List<*>
+            val tagged =
+                repos.filterIsInstance<Map<*, *>>().filter { repo ->
+                    (repo["topics"] as? List<*>)?.contains("lsposed-module") == true
+                }.map { repo -> keep.associateWith { repo[it] } }
+            file.parentFile.mkdirs()
+            file.writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(tagged)) + "\n")
+            logger.lifecycle("More modules snapshot: ${tagged.size} repos")
+        } catch (e: Exception) {
+            logger.warn("More modules snapshot not refreshed (${e.message}); keeping the existing file")
+            if (!file.exists()) {
+                file.parentFile.mkdirs()
+                file.writeText("[]\n")
+            }
+        }
+    }
+}
+
+val updateMoreModules =
+    tasks.register<UpdateMoreModules>("updateMoreModules") {
+        owner.set(prop("module.repo").substringBefore('/'))
+        snapshot.set(layout.projectDirectory.file("src/main/assets/more_modules.json"))
+    }
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(updateMoreModules) }

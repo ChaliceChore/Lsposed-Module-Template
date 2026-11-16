@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- "More modules" and the update check read the GitHub API. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- TEMPLATE: lets the app see the hooked package (app info, restart). -->
     <queries>
         <package android:name="com.example.target" />
@@ -38,6 +41,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+
+        <!-- Keeps the in-app language choice on Android 12 (13+ stores it in the system). -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
 
         <!-- Status reports from the hook inside the target. Exported, but StatusProvider only
              accepts calls from the target app's uid. -->

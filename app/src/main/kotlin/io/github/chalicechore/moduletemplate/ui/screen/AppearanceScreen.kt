@@ -3,6 +3,21 @@
 package io.github.chalicechore.moduletemplate.ui.screen
 
 import android.os.Build
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.ViewAgenda
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
+import io.github.chalicechore.moduletemplate.HomeLayout
+import io.github.chalicechore.moduletemplate.ui.AppLanguages
+import io.github.chalicechore.moduletemplate.ui.component.NavigationRow
+import io.github.chalicechore.moduletemplate.ui.component.RowTrailing
+import io.github.chalicechore.moduletemplate.ui.currentAppLanguage
+import io.github.chalicechore.moduletemplate.ui.languageName
+import io.github.chalicechore.moduletemplate.ui.setAppLanguage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -68,6 +83,7 @@ fun AppearanceScreen(
     onThemeModeChange: (ThemeMode) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onPureBlackChange: (Boolean) -> Unit,
+    onHomeLayoutChange: (HomeLayout) -> Unit,
     onBack: () -> Unit,
 ) {
     DetailScaffold(
@@ -84,8 +100,10 @@ fun AppearanceScreen(
             val rows =
                 buildList<@Composable (Shape) -> Unit> {
                     add { shape ->
-                        ThemeModeRow(
+                        SegmentedChoiceRow(
                             shape = shape,
+                            title = stringResource(R.string.appearance_theme),
+                            options = ThemeModes,
                             selected = appearance.themeMode,
                             onSelect = onThemeModeChange,
                         )
@@ -116,6 +134,22 @@ fun AppearanceScreen(
                     }
                 }
             RowGroup(rows = rows, modifier = Modifier.padding(top = Tokens.ScreenMargin))
+            SectionHeader(stringResource(R.string.section_layout_language))
+            RowGroup(
+                rows =
+                    buildList<@Composable (Shape) -> Unit> {
+                        if (AppLanguages.size > 1) add { shape -> LanguageRow(shape) }
+                        add { shape ->
+                            SegmentedChoiceRow(
+                                shape = shape,
+                                title = stringResource(R.string.home_layout_title),
+                                options = HomeLayouts,
+                                selected = appearance.homeLayout,
+                                onSelect = onHomeLayoutChange,
+                            )
+                        }
+                    },
+            )
             LauncherIconGroup()
         }
     }
@@ -177,12 +211,21 @@ private val ThemeModes =
         Triple(ThemeMode.DARK, Icons.Outlined.DarkMode, R.string.theme_dark),
     )
 
+private val HomeLayouts =
+    listOf(
+        Triple(HomeLayout.LIST, Icons.Outlined.ViewAgenda, R.string.home_layout_list),
+        Triple(HomeLayout.GRID, Icons.Outlined.GridView, R.string.home_layout_grid),
+    )
+
+/** A row with a title over a group of connected toggle buttons, one per option. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ThemeModeRow(
+private fun <T> SegmentedChoiceRow(
     shape: Shape,
-    selected: ThemeMode,
-    onSelect: (ThemeMode) -> Unit,
+    title: String,
+    options: List<Triple<T, ImageVector, Int>>,
+    selected: T,
+    onSelect: (T) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
     Surface(
@@ -195,11 +238,11 @@ private fun ThemeModeRow(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = stringResource(R.string.appearance_theme),
+                text = title,
                 style = MaterialTheme.typography.bodyLarge,
             )
             AdaptiveButtonRow(
-                items = ThemeModes,
+                items = options,
                 modifier = Modifier.selectableGroup(),
             ) { index, (mode, icon, label), stacked, itemModifier ->
                 ToggleButton(
@@ -221,7 +264,7 @@ private fun ThemeModeRow(
                                 ButtonGroupDefaults.connectedLeadingButtonShapes()
                             }
 
-                            index == ThemeModes.lastIndex -> {
+                            index == options.lastIndex -> {
                                 ButtonGroupDefaults
                                     .connectedTrailingButtonShapes()
                             }
@@ -242,4 +285,56 @@ private fun ThemeModeRow(
             }
         }
     }
+}
+
+/** "Language": System default first, then each language written in its own script. */
+@Composable
+private fun LanguageRow(shape: Shape) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val current = currentAppLanguage()
+    val systemDefault = stringResource(R.string.language_system_default)
+    NavigationRow(
+        shape = shape,
+        icon = Icons.Outlined.Language,
+        title = stringResource(R.string.language_title),
+        summary = current?.let(::languageName) ?: systemDefault,
+        onClick = { open = true },
+        trailing = RowTrailing.None,
+    )
+    if (!open) return
+    val haptics = LocalHapticFeedback.current
+    val options = listOf<String?>(null) + AppLanguages
+    AlertDialog(
+        onDismissRequest = { open = false },
+        title = { Text(stringResource(R.string.language_title)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()).selectableGroup()) {
+                options.forEach { tag ->
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .selectable(
+                                    selected = tag == current,
+                                    role = Role.RadioButton,
+                                    onClick = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                        open = false
+                                        if (tag != current) setAppLanguage(tag)
+                                    },
+                                ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = tag == current, onClick = null)
+                        Spacer(Modifier.width(16.dp))
+                        Text(tag?.let(::languageName) ?: systemDefault, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { open = false }) { Text(stringResource(R.string.dialog_cancel)) }
+        },
+    )
 }

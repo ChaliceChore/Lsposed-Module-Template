@@ -26,13 +26,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Balance
-import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.StarOutline
-import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Coffee
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Shape
+import io.github.chalicechore.moduletemplate.net.GitHub
+import io.github.chalicechore.moduletemplate.net.LatestRelease
+import io.github.chalicechore.moduletemplate.net.RepoOwner
+import io.github.chalicechore.moduletemplate.ui.component.SectionHeader
+import kotlinx.coroutines.launch
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -83,7 +97,8 @@ import kotlinx.coroutines.withContext
 private const val REPO_URL = "https://github.com/${BuildConfig.REPO}"
 private const val RELEASES_URL = "$REPO_URL/releases"
 private const val CHANGELOG_URL = "$REPO_URL/blob/main/CHANGELOG.md"
-private const val ISSUES_URL = "$REPO_URL/issues/new/choose"
+private const val FEATURE_REQUEST_URL = "$REPO_URL/issues/new?template=feature_request.yml"
+private const val KOFI_URL = "https://ko-fi.com/ChaliceChore"
 private const val LICENSE_URL = "$REPO_URL/blob/main/LICENSE"
 private const val ADAPTIVE_ICON_ZOOM = 1.425f
 private const val ICON_PIXELS = 432
@@ -140,7 +155,9 @@ private fun UriHandler.openOrIgnore(url: String) {
 @Composable
 fun AboutScreen(
     onOpenLicenses: () -> Unit,
+    onOpenMoreModules: () -> Unit,
     onBack: () -> Unit,
+    troubleshooting: @Composable () -> Unit = {},
 ) {
     val about = rememberAboutInfo()
     val uriHandler = LocalUriHandler.current
@@ -162,7 +179,13 @@ fun AboutScreen(
                 onOpenUrl = open,
                 modifier = Modifier.padding(Tokens.ScreenMargin),
             )
-            LinkRows(about = about, onOpenUrl = open, onOpenLicenses = onOpenLicenses)
+            LinkRows(
+                about = about,
+                onOpenUrl = open,
+                onOpenLicenses = onOpenLicenses,
+                onOpenMoreModules = onOpenMoreModules,
+                troubleshooting = troubleshooting,
+            )
         }
     }
 }
@@ -172,10 +195,13 @@ private fun LinkRows(
     about: AboutInfo,
     onOpenUrl: (String) -> Unit,
     onOpenLicenses: () -> Unit,
+    onOpenMoreModules: () -> Unit,
+    troubleshooting: @Composable () -> Unit,
 ) {
     RowGroup(
         rows =
             listOf(
+                { shape -> VersionRow(shape, about.versionName, onOpenUrl) },
                 { shape ->
                     NavigationRow(
                         shape = shape,
@@ -196,37 +222,161 @@ private fun LinkRows(
                         trailing = RowTrailing.External,
                     )
                 },
-                { shape ->
+            ),
+    )
+    troubleshooting()
+    SectionHeader(stringResource(R.string.section_project))
+    RowGroup(
+        rows =
+            buildList<@Composable (Shape) -> Unit> {
+                add { shape ->
                     NavigationRow(
                         shape = shape,
-                        icon = ImageVector.vectorResource(R.drawable.ic_github),
+                        icon = Icons.Outlined.Code,
                         title = stringResource(R.string.about_source_code),
                         summary = BuildConfig.REPO,
                         onClick = { onOpenUrl(REPO_URL) },
                         trailing = RowTrailing.External,
                     )
-                },
+                }
+                add { shape ->
+                    NavigationRow(
+                        shape = shape,
+                        icon = Icons.Outlined.Lightbulb,
+                        title = stringResource(R.string.about_request_feature),
+                        summary = stringResource(R.string.about_request_feature_summary),
+                        onClick = { onOpenUrl(FEATURE_REQUEST_URL) },
+                        trailing = RowTrailing.External,
+                    )
+                }
+                if (BuildConfig.TRANSLATE_URL.isNotEmpty()) {
+                    add { shape ->
+                        NavigationRow(
+                            shape = shape,
+                            icon = Icons.Outlined.Translate,
+                            title = stringResource(R.string.about_translate),
+                            summary = stringResource(R.string.about_translate_summary),
+                            onClick = { onOpenUrl(BuildConfig.TRANSLATE_URL) },
+                            trailing = RowTrailing.External,
+                        )
+                    }
+                }
+            },
+    )
+    SectionHeader(stringResource(R.string.section_author))
+    RowGroup(
+        rows =
+            listOf(
                 { shape ->
                     NavigationRow(
                         shape = shape,
-                        icon = Icons.Outlined.BugReport,
-                        title = stringResource(R.string.about_issues),
-                        summary = stringResource(R.string.about_issues_summary),
-                        onClick = { onOpenUrl(ISSUES_URL) },
+                        icon = ImageVector.vectorResource(R.drawable.ic_github),
+                        title = stringResource(R.string.about_author),
+                        summary = "github.com/$RepoOwner",
+                        onClick = { onOpenUrl("https://github.com/$RepoOwner") },
                         trailing = RowTrailing.External,
                     )
                 },
                 { shape ->
                     NavigationRow(
                         shape = shape,
-                        icon = Icons.Outlined.Gavel,
-                        title = stringResource(R.string.about_licenses),
-                        summary = stringResource(R.string.about_licenses_summary),
-                        onClick = onOpenLicenses,
+                        icon = Icons.Outlined.Extension,
+                        title = stringResource(R.string.about_more_modules, RepoOwner),
+                        summary = stringResource(R.string.about_more_modules_summary),
+                        onClick = onOpenMoreModules,
                     )
                 },
             ),
     )
+    RowGroup(
+        rows =
+            listOf { shape ->
+                NavigationRow(
+                    shape = shape,
+                    icon = Icons.Outlined.Gavel,
+                    title = stringResource(R.string.about_licenses),
+                    summary = stringResource(R.string.about_licenses_summary),
+                    onClick = onOpenLicenses,
+                )
+            },
+        modifier = Modifier.padding(top = 24.dp),
+    )
+}
+
+private sealed interface UpdateCheck {
+    data object Idle : UpdateCheck
+
+    data object Checking : UpdateCheck
+
+    data object Latest : UpdateCheck
+
+    data class Available(
+        val release: LatestRelease,
+    ) : UpdateCheck
+
+    data object Failed : UpdateCheck
+}
+
+/** "Version": tap to ask GitHub for the latest release; tap again to open an update. */
+@Composable
+private fun VersionRow(
+    shape: Shape,
+    versionName: String,
+    onOpenUrl: (String) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var check by remember { mutableStateOf<UpdateCheck>(UpdateCheck.Idle) }
+    val installed = "v$versionName"
+    val summary =
+        when (val c = check) {
+            UpdateCheck.Idle -> stringResource(R.string.about_version_tap, installed)
+            UpdateCheck.Checking -> stringResource(R.string.about_update_checking)
+            UpdateCheck.Latest -> stringResource(R.string.about_update_latest, installed)
+            is UpdateCheck.Available -> stringResource(R.string.about_update_available, installed, "v${c.release.version}")
+            UpdateCheck.Failed -> stringResource(R.string.about_update_failed, installed)
+        }
+    NavigationRow(
+        shape = shape,
+        icon = Icons.Outlined.Info,
+        title = stringResource(R.string.about_version_title),
+        summary = summary,
+        trailing = if (check is UpdateCheck.Available) RowTrailing.External else RowTrailing.None,
+        onClick = {
+            when (val c = check) {
+                is UpdateCheck.Available -> {
+                    onOpenUrl(c.release.url)
+                }
+
+                UpdateCheck.Checking -> {}
+
+                else -> {
+                    check = UpdateCheck.Checking
+                    scope.launch {
+                        check =
+                            runCatching { GitHub.latestRelease() }.fold(
+                                onSuccess = { if (isNewer(it.version, versionName)) UpdateCheck.Available(it) else UpdateCheck.Latest },
+                                onFailure = { UpdateCheck.Failed },
+                            )
+                    }
+                }
+            }
+        },
+    )
+}
+
+/** Compares dotted version numbers ("1.10.0" > "1.9.2"); anything non-numeric counts as 0. */
+private fun isNewer(
+    candidate: String,
+    current: String,
+): Boolean {
+    fun parts(v: String) = v.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
+    val a = parts(candidate)
+    val b = parts(current)
+    for (i in 0 until maxOf(a.size, b.size)) {
+        val diff = a.getOrElse(i) { 0 } - b.getOrElse(i) { 0 }
+        if (diff != 0) return diff > 0
+    }
+    return false
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -309,7 +459,7 @@ private fun SupportButtons(
     val labels =
         listOf(
             stringResource(R.string.about_star_on_github),
-            stringResource(R.string.about_releases),
+            stringResource(R.string.about_kofi),
         )
     AdaptiveButtonRow(items = labels, modifier = modifier) { index, label, stacked, itemModifier ->
         val buttonModifier = itemModifier.heightIn(min = 52.dp)
@@ -333,7 +483,7 @@ private fun SupportButtons(
             }
         } else {
             FilledTonalButton(
-                onClick = { onOpenUrl(RELEASES_URL) },
+                onClick = { onOpenUrl(KOFI_URL) },
                 shapes =
                     if (stacked) {
                         ButtonDefaults.shapes()
@@ -345,7 +495,7 @@ private fun SupportButtons(
                     },
                 modifier = buttonModifier,
             ) {
-                Icon(Icons.Outlined.Download, null, Modifier.size(ButtonDefaults.IconSize))
+                Icon(Icons.Outlined.Coffee, null, Modifier.size(ButtonDefaults.IconSize))
                 Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                 Text(label, maxLines = 1)
             }

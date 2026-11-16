@@ -53,6 +53,7 @@ import io.github.chalicechore.moduletemplate.ui.screen.AppearanceScreen
 import io.github.chalicechore.moduletemplate.ui.screen.CategoryScreen
 import io.github.chalicechore.moduletemplate.ui.screen.HomeScreen
 import io.github.chalicechore.moduletemplate.ui.screen.LicensesScreen
+import io.github.chalicechore.moduletemplate.ui.screen.MoreModulesScreen
 import io.github.chalicechore.moduletemplate.ui.theme.ModuleTheme
 import io.github.chalicechore.moduletemplate.ui.theme.isReducedMotion
 
@@ -70,6 +71,8 @@ sealed interface Destination {
 
     data object Licenses : Destination
 
+    data object MoreModules : Destination
+
     fun toRoute(): String =
         when (this) {
             Home -> HOME
@@ -77,6 +80,7 @@ sealed interface Destination {
             Appearance -> APPEARANCE
             About -> ABOUT
             Licenses -> LICENSES
+            MoreModules -> MORE_MODULES
         }
 
     companion object {
@@ -85,6 +89,7 @@ sealed interface Destination {
         private const val APPEARANCE = "appearance"
         private const val ABOUT = "about"
         private const val LICENSES = "licenses"
+        private const val MORE_MODULES = "more_modules"
 
         fun fromRoute(route: String): Destination =
             when {
@@ -98,6 +103,10 @@ sealed interface Destination {
 
                 route == LICENSES -> {
                     Licenses
+                }
+
+                route == MORE_MODULES -> {
+                    MoreModules
                 }
 
                 route.startsWith(CATEGORY) -> {
@@ -222,8 +231,12 @@ private fun SettingsNavigation(
                     entry<Destination.About> {
                         AboutScreen(
                             onOpenLicenses = { backStack.add(Destination.Licenses) },
+                            onOpenMoreModules = { backStack.add(Destination.MoreModules) },
                             onBack = { popIfTop(Destination.About) },
                         )
+                    }
+                    entry<Destination.MoreModules> {
+                        MoreModulesScreen(onBack = { popIfTop(Destination.MoreModules) })
                     }
                     entry<Destination.Licenses> {
                         LicensesScreen(onBack = { popIfTop(Destination.Licenses) })
@@ -234,6 +247,7 @@ private fun SettingsNavigation(
                             onThemeModeChange = viewModel::setThemeMode,
                             onDynamicColorChange = viewModel::setDynamicColor,
                             onPureBlackChange = viewModel::setPureBlack,
+                            onHomeLayoutChange = viewModel::setHomeLayout,
                             onBack = { popIfTop(Destination.Appearance) },
                         )
                     }
