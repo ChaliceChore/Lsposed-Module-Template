@@ -221,6 +221,21 @@ class MainViewModel(
         }
     }
 
+    /** A restored backup's settings become pending changes, applied through the sheet. */
+    fun restoreSettings(settings: FeatureSettings) {
+        clearFailure()
+        viewModelScope.launch(writer) { preferences.save(settings) }
+    }
+
+    fun restoreAppearance(appearance: Appearance) {
+        viewModelScope.launch(Dispatchers.IO) {
+            appearanceRepository.setThemeMode(appearance.themeMode)
+            appearanceRepository.setDynamicColor(appearance.dynamicColor)
+            appearanceRepository.setPureBlack(appearance.pureBlack)
+            appearanceRepository.setHomeLayout(appearance.homeLayout)
+        }
+    }
+
     /** Puts every pending setting back to what was last applied. */
     fun discard() {
         clearFailure()

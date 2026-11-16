@@ -50,6 +50,7 @@ import io.github.chalicechore.moduletemplate.ui.component.ApplySheetContent
 import io.github.chalicechore.moduletemplate.ui.component.ApplySheetScaffold
 import io.github.chalicechore.moduletemplate.ui.component.PendingChange
 import io.github.chalicechore.moduletemplate.ui.screen.AboutScreen
+import io.github.chalicechore.moduletemplate.ui.screen.BackupRestoreGroup
 import io.github.chalicechore.moduletemplate.ui.screen.AppearanceScreen
 import io.github.chalicechore.moduletemplate.ui.screen.CategoryScreen
 import io.github.chalicechore.moduletemplate.ui.screen.HomeScreen
@@ -266,6 +267,15 @@ private fun SettingsNavigation(
                                     onOpenHealth = { backStack.add(Destination.FeatureHealth) },
                                     onDebugLoggingChange = viewModel::setDebugLogging,
                                 )
+                            },
+                            backup = {
+                                if (ModuleConfig.BACKUP_RESTORE) {
+                                    BackupRestoreGroup(
+                                        state = state,
+                                        onRestoreSettings = viewModel::restoreSettings,
+                                        onRestoreAppearance = viewModel::restoreAppearance,
+                                    )
+                                }
                             },
                             onBack = { popIfTop(Destination.About) },
                         )
