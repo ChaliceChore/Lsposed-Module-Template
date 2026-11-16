@@ -44,6 +44,7 @@ import androidx.navigation3.ui.NavDisplay
 import io.github.chalicechore.moduletemplate.BuildConfig
 import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.prefs.FeatureCategory
+import io.github.chalicechore.moduletemplate.prefs.SettingsKeys
 import io.github.chalicechore.moduletemplate.ui.component.ApplySheetContent
 import io.github.chalicechore.moduletemplate.ui.component.ApplySheetScaffold
 import io.github.chalicechore.moduletemplate.ui.component.PendingChange
@@ -172,9 +173,13 @@ private fun SettingsNavigation(
     ApplyHaptics(state.phase)
     val activity = LocalActivity.current
     val transitions = rememberScreenTransitions()
+    var restartDismissed by rememberSaveable { mutableStateOf(false) }
     ApplySheetScaffold(
-        content = applySheetContent(state),
+        content = applySheetContent(state, viewModel, restartDismissed),
         onApply = viewModel::apply,
+        onDiscard = viewModel::discard,
+        onRestartTarget = viewModel::restartTarget,
+        onDismissRestart = { restartDismissed = true },
         onOpenTargetInfo = {
             activity?.startActivity(
                 Intent(
@@ -238,7 +243,11 @@ private fun SettingsNavigation(
 }
 
 @Composable
-private fun applySheetContent(state: UiState.Ready): ApplySheetContent? =
+private fun applySheetContent(
+    state: UiState.Ready,
+    viewModel: MainViewModel,
+    restartDismissed: Boolean,
+): ApplySheetContent? =
     when {
         state.phase.isRunning -> {
             null
@@ -251,8 +260,13 @@ private fun applySheetContent(state: UiState.Ready): ApplySheetContent? =
         state.pendingCount > 0 -> {
             ApplySheetContent.Pending(
                 canApply = state.framework != null,
-                changes = pendingChanges(state),
+                restart = state.restartNeeded,
+                changes = pendingChanges(state, viewModel),
             )
+        }
+
+        state.targetNeedsRestart && !restartDismissed -> {
+            ApplySheetContent.RestartToLoad
         }
 
         else -> {
@@ -261,32 +275,46 @@ private fun applySheetContent(state: UiState.Ready): ApplySheetContent? =
     }
 
 @Composable
-private fun pendingChanges(state: UiState.Ready): List<PendingChange> {
+private fun pendingChanges(
+    state: UiState.Ready,
+    viewModel: MainViewModel,
+): List<PendingChange> {
     val desired = state.desired
     val on = stringResource(R.string.pending_change_on)
     val off = stringResource(R.string.pending_change_off)
+    val master =
+        PendingChange(
+            key = SettingsKeys.MODULE_ENABLED,
+            titleRes = R.string.master_switch_title,
+            areaRes = R.string.pending_area_home,
+            value = if (desired.moduleEnabled) on else off,
+            highlighted = desired.moduleEnabled,
+            onRevert = viewModel::revertModuleEnabled,
+        ).takeIf { state.moduleEnabledChanged }
     val switches =
         desired
             .differingSwitches(state.appliedOrDefault)
             .sorted()
             .map {
                 val enabled = desired.isOn(it)
-                PendingChange(it.titleRes, it.category.titleRes, if (enabled) on else off, enabled)
+                PendingChange(
+                    key = it.key,
+                    titleRes = it.titleRes,
+                    areaRes = it.category.titleRes,
+                    value = if (enabled) on else off,
+                    highlighted = enabled,
+                    onRevert = { viewModel.revertSwitch(it) },
+                )
             }
     val choice =
         PendingChange(
+            key = SettingsKeys.CHOICE,
             titleRes = R.string.option_choice_title,
             areaRes = ChoiceCategory.titleRes,
             value = stringResource(desired.choice.labelRes),
             highlighted = true,
+            onRevert = viewModel::revertChoice,
         ).takeIf { state.choiceChanged }
-    val master =
-        PendingChange(
-            titleRes = R.string.master_switch_title,
-            areaRes = R.string.pending_area_home,
-            value = if (desired.moduleEnabled) on else off,
-            highlighted = desired.moduleEnabled,
-        ).takeIf { state.moduleEnabledChanged }
     return listOfNotNull(master) + switches + listOfNotNull(choice)
 }
 

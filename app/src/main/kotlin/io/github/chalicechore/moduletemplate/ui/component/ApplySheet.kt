@@ -23,7 +23,25 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
@@ -74,19 +92,26 @@ import kotlinx.coroutines.flow.first
 /** Height the apply sheet covers at the bottom; lists add it as bottom padding. */
 val LocalApplySheetInset = compositionLocalOf { 0.dp }
 
-/** One unapplied change, as listed in the sheet. */
+/** One unapplied change, as listed in the sheet. [onRevert] undoes only this change. */
 data class PendingChange(
+    val key: String,
     @param:StringRes val titleRes: Int,
     @param:StringRes val areaRes: Int,
     val value: String,
     val highlighted: Boolean,
+    val onRevert: () -> Unit,
 )
 
 sealed interface ApplySheetContent {
+    /** @property restart applying restarts the target (false: only LIVE changes left). */
     data class Pending(
         val canApply: Boolean,
+        val restart: Boolean,
         val changes: List<PendingChange>,
     ) : ApplySheetContent
+
+    /** Nothing pending, but the running target started before the module was enabled. */
+    data object RestartToLoad : ApplySheetContent
 
     data class Failure(
         val reason: ApplyFailure,
@@ -105,7 +130,7 @@ private const val SUMMARY_NAMES_SHOWN = 2
 private fun ApplySheetContent?.sheetTarget(): SheetValue =
     when (this) {
         null -> SheetValue.Hidden
-        is ApplySheetContent.Pending -> SheetValue.PartiallyExpanded
+        is ApplySheetContent.Pending, ApplySheetContent.RestartToLoad -> SheetValue.PartiallyExpanded
         is ApplySheetContent.Failure -> SheetValue.Expanded
     }
 
@@ -118,6 +143,9 @@ private fun ApplySheetContent?.sheetTarget(): SheetValue =
 fun ApplySheetScaffold(
     content: ApplySheetContent?,
     onApply: () -> Unit,
+    onDiscard: () -> Unit,
+    onRestartTarget: () -> Unit,
+    onDismissRestart: () -> Unit,
     onOpenTargetInfo: () -> Unit,
     modifier: Modifier = Modifier,
     body: @Composable () -> Unit,
@@ -184,6 +212,16 @@ fun ApplySheetScaffold(
                             content = shownContent,
                             sideBySide = sideBySide,
                             onApply = onApply,
+                            onDiscard = onDiscard,
+                            onPeekBlockHeight = { peekBlockHeightPx = it },
+                        )
+                    }
+
+                    ApplySheetContent.RestartToLoad -> {
+                        RestartToLoadSheet(
+                            sideBySide = sideBySide,
+                            onRestart = onRestartTarget,
+                            onNotNow = onDismissRestart,
                             onPeekBlockHeight = { peekBlockHeightPx = it },
                         )
                     }
@@ -239,6 +277,7 @@ private fun ColumnScope.PendingSheet(
     content: ApplySheetContent.Pending,
     sideBySide: Boolean,
     onApply: () -> Unit,
+    onDiscard: () -> Unit,
     onPeekBlockHeight: (Int) -> Unit,
 ) {
     val count = content.changes.size
@@ -249,41 +288,42 @@ private fun ColumnScope.PendingSheet(
         } else {
             stringResource(R.string.pending_saved_on_device)
         }
-    val applyButton: @Composable (Modifier) -> Unit = { buttonModifier ->
-        val height = ButtonDefaults.MediumContainerHeight
-        Button(
-            onClick = onApply,
-            enabled = content.canApply,
-            shapes = ButtonDefaults.shapes(),
-            modifier = buttonModifier.heightIn(min = height),
-            contentPadding = ButtonDefaults.contentPaddingFor(height),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.RestartAlt,
-                contentDescription = null,
-                modifier = Modifier.size(ButtonDefaults.iconSizeFor(height)),
-            )
-            Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(height)))
-            Text(stringResource(R.string.apply_and_restart, stringResource(R.string.target_label)))
-        }
-    }
-    if (sideBySide) {
-        Row(
-            modifier = Modifier.peekBlock(onPeekBlockHeight),
-            horizontalArrangement = Arrangement.spacedBy(Tokens.RowPadding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SheetMessage(title, summary, Modifier.weight(1f))
-            applyButton(Modifier)
-        }
-    } else {
-        Column(
-            modifier = Modifier.peekBlock(onPeekBlockHeight),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            SheetMessage(title, summary, Modifier.fillMaxWidth())
-            applyButton(Modifier.fillMaxWidth())
-        }
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    val target = stringResource(R.string.target_label)
+    SheetActions(
+        title = title,
+        summary = summary,
+        sideBySide = sideBySide,
+        onPeekBlockHeight = onPeekBlockHeight,
+        secondaryLabel = stringResource(R.string.pending_discard),
+        onSecondary = { confirmDiscard = true },
+        primaryLabel =
+            if (content.restart) {
+                stringResource(R.string.apply_and_restart, target)
+            } else {
+                stringResource(R.string.apply_only)
+            },
+        primaryIcon = if (content.restart) Icons.Outlined.RestartAlt else Icons.Outlined.Check,
+        primaryEnabled = content.canApply,
+        onPrimary = onApply,
+    )
+    if (confirmDiscard) {
+        AlertDialog(
+            onDismissRequest = { confirmDiscard = false },
+            title = { Text(pluralStringResource(R.plurals.discard_title, count, count)) },
+            text = { Text(stringResource(R.string.discard_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDiscard = false
+                    onDiscard()
+                }) { Text(stringResource(R.string.pending_discard)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDiscard = false }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
+            },
+        )
     }
     HorizontalDivider(modifier = Modifier.padding(horizontal = Tokens.RowPadding))
     Column(
@@ -294,29 +334,160 @@ private fun ColumnScope.PendingSheet(
                 .navigationBarsPadding()
                 .padding(vertical = 8.dp),
     ) {
-        content.changes.forEach { change -> PendingChangeRow(change) }
+        content.changes.forEach { change -> key(change.key) { PendingChangeRow(change) } }
+    }
+}
+
+/** One change. The ✕ button or a sideways swipe reverts just this change, without asking. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PendingChangeRow(change: PendingChange) {
+    val haptics = LocalHapticFeedback.current
+    val revert by rememberUpdatedState(change.onRevert)
+    val dismiss =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                if (value != SwipeToDismissBoxValue.Settled) {
+                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                    revert()
+                }
+                value != SwipeToDismissBoxValue.Settled
+            },
+        )
+    SwipeToDismissBox(
+        state = dismiss,
+        backgroundContent = {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                        .padding(horizontal = Tokens.RowPadding),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = null)
+                Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = null)
+            }
+        },
+    ) {
+        ListItem(
+            supportingContent = { Text(stringResource(change.areaRes)) },
+            trailingContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = change.value,
+                        style = MaterialTheme.typography.labelLarge,
+                        color =
+                            if (change.highlighted) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                    )
+                    IconButton(onClick = change.onRevert) {
+                        Icon(
+                            Icons.Outlined.Close,
+                            contentDescription =
+                                stringResource(R.string.pending_revert, stringResource(change.titleRes)),
+                        )
+                    }
+                }
+            },
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        ) {
+            Text(stringResource(change.titleRes))
+        }
     }
 }
 
 @Composable
-private fun PendingChangeRow(change: PendingChange) {
-    ListItem(
-        supportingContent = { Text(stringResource(change.areaRes)) },
-        trailingContent = {
-            Text(
-                text = change.value,
-                style = MaterialTheme.typography.labelLarge,
-                color =
-                    if (change.highlighted) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-            )
-        },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-    ) {
-        Text(stringResource(change.titleRes))
+private fun ColumnScope.RestartToLoadSheet(
+    sideBySide: Boolean,
+    onRestart: () -> Unit,
+    onNotNow: () -> Unit,
+    onPeekBlockHeight: (Int) -> Unit,
+) {
+    val target = stringResource(R.string.target_label)
+    SheetActions(
+        title = stringResource(R.string.restart_to_load_title, target),
+        summary = stringResource(R.string.restart_to_load_body, target),
+        sideBySide = sideBySide,
+        onPeekBlockHeight = onPeekBlockHeight,
+        secondaryLabel = stringResource(R.string.restart_not_now),
+        onSecondary = onNotNow,
+        primaryLabel = stringResource(R.string.restart_target, target),
+        primaryIcon = Icons.Outlined.RestartAlt,
+        primaryEnabled = true,
+        onPrimary = onRestart,
+    )
+}
+
+/**
+ * The sheet's always-visible block: a message, then a smaller secondary button (Discard,
+ * Not now) on the left and the wider primary action on the right.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SheetActions(
+    title: String,
+    summary: String,
+    sideBySide: Boolean,
+    onPeekBlockHeight: (Int) -> Unit,
+    secondaryLabel: String,
+    onSecondary: () -> Unit,
+    primaryLabel: String,
+    primaryIcon: ImageVector,
+    primaryEnabled: Boolean,
+    onPrimary: () -> Unit,
+) {
+    val height = ButtonDefaults.MediumContainerHeight
+    val buttons: @Composable (Modifier) -> Unit = { rowModifier ->
+        Row(
+            modifier = rowModifier,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedButton(
+                onClick = onSecondary,
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.heightIn(min = height),
+                contentPadding = ButtonDefaults.contentPaddingFor(height),
+            ) { Text(secondaryLabel, maxLines = 1) }
+            Button(
+                onClick = onPrimary,
+                enabled = primaryEnabled,
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.weight(1f, fill = !sideBySide).heightIn(min = height),
+                contentPadding = ButtonDefaults.contentPaddingFor(height),
+            ) {
+                Icon(
+                    imageVector = primaryIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.iconSizeFor(height)),
+                )
+                Spacer(Modifier.width(ButtonDefaults.iconSpacingFor(height)))
+                Text(primaryLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+    if (sideBySide) {
+        Row(
+            modifier = Modifier.peekBlock(onPeekBlockHeight),
+            horizontalArrangement = Arrangement.spacedBy(Tokens.RowPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SheetMessage(title, summary, Modifier.weight(1f))
+            buttons(Modifier)
+        }
+    } else {
+        Column(
+            modifier = Modifier.peekBlock(onPeekBlockHeight),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SheetMessage(title, summary, Modifier.fillMaxWidth())
+            buttons(Modifier.fillMaxWidth())
+        }
     }
 }
 

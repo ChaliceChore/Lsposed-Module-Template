@@ -194,6 +194,41 @@ class MainViewModel(
         }
     }
 
+    /** Puts every pending setting back to what was last applied. */
+    fun discard() {
+        clearFailure()
+        viewModelScope.launch(writer) {
+            preferences.save(preferences.appliedSettings() ?: FeatureSettings())
+        }
+    }
+
+    /** Puts one switch back to its applied value. */
+    fun revertSwitch(switch: FeatureSwitch) {
+        val applied = (uiState.value as? UiState.Ready)?.appliedOrDefault ?: return
+        setSwitch(switch, applied.isOn(switch))
+    }
+
+    fun revertChoice() {
+        val applied = (uiState.value as? UiState.Ready)?.appliedOrDefault ?: return
+        setChoice(applied.choice)
+    }
+
+    fun revertModuleEnabled() {
+        val applied = (uiState.value as? UiState.Ready)?.appliedOrDefault ?: return
+        setModuleEnabled(applied.moduleEnabled)
+    }
+
+    /** Restarts the target with nothing to apply, so it loads the module. */
+    fun restartTarget() {
+        viewModelScope.launch {
+            applyLock.withLock {
+                phase.value = ApplyPhase.Restarting
+                phase.value =
+                    if (restarter.restart()) ApplyPhase.Idle else ApplyPhase.Failed(ApplyFailure.RestartFailed)
+            }
+        }
+    }
+
     private fun clearFailure() {
         if (phase.value is ApplyPhase.Failed) phase.value = ApplyPhase.Idle
     }
