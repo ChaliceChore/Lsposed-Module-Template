@@ -181,7 +181,7 @@ private fun categorySummary(
     settings: FeatureSettings,
 ): String {
     val total = FeatureSwitch.entries.count { it.category == category }
-    val on = settings.enabled.count { it.category == category }
+    val on = settings.switches.count { it.category == category }
     return when {
         on == 0 -> stringResource(R.string.category_summary_off)
         total == 1 -> stringResource(R.string.category_summary_on_single)

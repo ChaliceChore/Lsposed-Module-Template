@@ -277,7 +277,14 @@ private fun pendingChanges(state: UiState.Ready): List<PendingChange> {
             value = stringResource(desired.choice.labelRes),
             highlighted = true,
         ).takeIf { state.choiceChanged }
-    return switches + listOfNotNull(choice)
+    val master =
+        PendingChange(
+            titleRes = R.string.master_switch_title,
+            areaRes = R.string.pending_area_home,
+            value = if (desired.moduleEnabled) on else off,
+            highlighted = desired.moduleEnabled,
+        ).takeIf { state.moduleEnabledChanged }
+    return listOfNotNull(master) + switches + listOfNotNull(choice)
 }
 
 @Composable

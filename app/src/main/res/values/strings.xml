@@ -58,6 +58,8 @@
     <string name="pending_areas_more">%1$s and %2$d more</string>
     <string name="pending_saved_on_device">Saved on this device. Turn the module on in your Xposed manager to apply them</string>
     <string name="pending_change_on">On</string>
+    <string name="master_switch_title">Module</string>
+    <string name="pending_area_home">Home</string>
     <string name="pending_change_off">Off</string>
     <string name="apply_and_restart">Apply and restart %1$s</string>
     <string name="apply_not_sent_title">Settings weren\'t sent</string>

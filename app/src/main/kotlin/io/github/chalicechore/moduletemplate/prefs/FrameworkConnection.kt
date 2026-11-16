@@ -59,12 +59,20 @@ class FrameworkConnection : XposedServiceHelper.OnServiceListener {
         }
     }
 
+    /** Writes every setting, for Apply. */
     suspend fun publish(settings: FeatureSettings): Boolean =
+        publish { SettingsKeys.write(settings, it) }
+
+    /**
+     * Writes only what [write] puts, for LIVE settings: other settings may still be pending and
+     * must not reach the hook before the user applies them.
+     */
+    suspend fun publish(write: (SharedPreferences.Editor) -> Unit): Boolean =
         publishLock.withLock {
             withContext(Dispatchers.IO) {
                 val current = session.value ?: return@withContext false
                 try {
-                    SettingsKeys.write(settings, current.openRemoteEditor()).commit()
+                    current.openRemoteEditor().also(write).commit()
                 } catch (exception: CancellationException) {
                     throw exception
                 } catch (exception: RuntimeException) {

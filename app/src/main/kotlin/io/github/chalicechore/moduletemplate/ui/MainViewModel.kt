@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.chalicechore.moduletemplate.ModuleApp
 import io.github.chalicechore.moduletemplate.prefs.Appearance
+import io.github.chalicechore.moduletemplate.prefs.Applies
 import io.github.chalicechore.moduletemplate.prefs.AppearanceRepository
 import io.github.chalicechore.moduletemplate.prefs.Choice
 import io.github.chalicechore.moduletemplate.prefs.FeatureSettings
@@ -60,6 +61,10 @@ sealed interface UiState {
         val appliedOrDefault: FeatureSettings get() = applied ?: FeatureSettings()
         val pendingCount: Int get() = desired.countDifferences(appliedOrDefault)
         val choiceChanged: Boolean get() = desired.choice != appliedOrDefault.choice
+        val moduleEnabledChanged: Boolean get() = desired.moduleEnabled != appliedOrDefault.moduleEnabled
+
+        /** Applying the pending changes restarts the target (false: only LIVE ones are left). */
+        val restartNeeded: Boolean get() = desired.needsRestart(appliedOrDefault)
     }
 }
 
@@ -86,8 +91,6 @@ class MainViewModel(
             UiState.Ready(desired, applied, appearance, info, phase)
         }.stateIn(viewModelScope, SharingStarted.Eagerly, UiState.Loading)
 
-    private fun current(): FeatureSettings? = (uiState.value as? UiState.Ready)?.desired
-
     fun setSwitch(
         switch: FeatureSwitch,
         on: Boolean,
@@ -95,6 +98,21 @@ class MainViewModel(
         clearFailure()
         viewModelScope.launch(writer) {
             preferences.save(preferences.desiredSettings().with(switch, on))
+            if (switch.applies == Applies.LIVE) {
+                // Straight to the hook. If that fails (no framework), it stays pending instead.
+                val sent = framework.publish { it.putBoolean(switch.key, on) }
+                if (sent) {
+                    val applied = preferences.appliedSettings() ?: FeatureSettings()
+                    preferences.markApplied(applied.with(switch, on))
+                }
+            }
+        }
+    }
+
+    fun setModuleEnabled(on: Boolean) {
+        clearFailure()
+        viewModelScope.launch(writer) {
+            preferences.save(preferences.desiredSettings().copy(moduleEnabled = on))
         }
     }
 
@@ -120,13 +138,19 @@ class MainViewModel(
     fun apply() {
         viewModelScope.launch {
             applyLock.withLock {
-                val settings = current() ?: return@withLock
+                val ready = uiState.value as? UiState.Ready ?: return@withLock
+                val settings = ready.desired
+                val restart = ready.restartNeeded
                 phase.value = ApplyPhase.Saving
                 if (!framework.publish(settings)) {
                     phase.value = ApplyPhase.Failed(ApplyFailure.NotSent)
                     return@withLock
                 }
                 preferences.markApplied(settings)
+                if (!restart) {
+                    phase.value = ApplyPhase.Idle
+                    return@withLock
+                }
                 phase.value = ApplyPhase.Restarting
                 phase.value =
                     if (restarter.restart()) {
