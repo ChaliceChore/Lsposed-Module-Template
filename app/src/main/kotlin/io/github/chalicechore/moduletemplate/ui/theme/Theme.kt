@@ -19,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Typography
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -32,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -41,6 +43,9 @@ import androidx.compose.ui.unit.dp
 import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.prefs.Appearance
 import io.github.chalicechore.moduletemplate.prefs.ThemeMode
+import com.materialkolor.hct.Hct
+import com.materialkolor.scheme.DynamicScheme
+import com.materialkolor.scheme.SchemeTonalSpot
 import me.zhanghai.compose.preference.ProvidePreferenceTheme
 import me.zhanghai.compose.preference.preferenceTheme
 
@@ -138,14 +143,10 @@ fun ModuleTheme(
                 if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             }
 
-            darkTheme -> {
-                GraphiteDark
-            }
-
             else -> {
-                GraphiteLight
+                remember(darkTheme) { seedColorScheme(BrandSeed, darkTheme) }
             }
-        }
+        }.let { if (darkTheme && appearance.pureBlack) it.pureBlack() else it }
     SystemBarStyles(darkTheme)
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
@@ -158,81 +159,68 @@ fun ModuleTheme(
     }
 }
 
-// Neutral "graphite" scheme used when dynamic color is off or unavailable.
-private val GraphiteLight =
-    lightColorScheme(
-        primary = Color(0xFF5D5F5F),
-        onPrimary = Color(0xFFFFFFFF),
-        primaryContainer = Color(0xFFE2E2E2),
-        onPrimaryContainer = Color(0xFF454747),
-        secondary = Color(0xFF5E5E62),
-        onSecondary = Color(0xFFFFFFFF),
-        secondaryContainer = Color(0xFFE3E2E6),
-        onSecondaryContainer = Color(0xFF46464A),
-        tertiary = Color(0xFF625D60),
-        onTertiary = Color(0xFFFFFFFF),
-        tertiaryContainer = Color(0xFFE9E0E4),
-        onTertiaryContainer = Color(0xFF4A4549),
-        error = Color(0xFFBA1A1A),
-        onError = Color(0xFFFFFFFF),
-        errorContainer = Color(0xFFFFDAD6),
-        onErrorContainer = Color(0xFF93000A),
-        background = Color(0xFFFAF9F9),
-        onBackground = Color(0xFF1B1C1C),
-        surface = Color(0xFFFAF9F9),
-        onSurface = Color(0xFF1B1C1C),
-        surfaceVariant = Color(0xFFE3E2E6),
-        onSurfaceVariant = Color(0xFF46474A),
-        outline = Color(0xFF77777A),
-        outlineVariant = Color(0xFFC7C6CA),
-        scrim = Color(0xFF000000),
-        inverseSurface = Color(0xFF2F3131),
-        inverseOnSurface = Color(0xFFF2F0F0),
-        inversePrimary = Color(0xFFC6C7C7),
-        surfaceDim = Color(0xFFDBDAD9),
-        surfaceBright = Color(0xFFFAF9F9),
-        surfaceContainerLowest = Color(0xFFFFFFFF),
-        surfaceContainerLow = Color(0xFFF4F3F3),
-        surfaceContainer = Color(0xFFEFEDED),
-        surfaceContainerHigh = Color(0xFFE9E8E7),
-        surfaceContainerHighest = Color(0xFFE3E2E2),
-    )
+/**
+ * Brand colour shared by all ChaliceChore modules: Deep Cerulean Teal. Used when dynamic color is
+ * off or unavailable, and as the accent in launcher icons. Keep it the same in every module.
+ */
+val BrandSeed = Color(0xFF0E7C93)
 
-private val GraphiteDark =
-    darkColorScheme(
-        primary = Color(0xFFC6C7C7),
-        onPrimary = Color(0xFF2F3131),
-        primaryContainer = Color(0xFF454747),
-        onPrimaryContainer = Color(0xFFE2E2E2),
-        secondary = Color(0xFFC7C6CA),
-        onSecondary = Color(0xFF2F3033),
-        secondaryContainer = Color(0xFF46464A),
-        onSecondaryContainer = Color(0xFFE3E2E6),
-        tertiary = Color(0xFFCCC4C8),
-        onTertiary = Color(0xFF342F32),
-        tertiaryContainer = Color(0xFF4A4549),
-        onTertiaryContainer = Color(0xFFE9E0E4),
-        error = Color(0xFFFFB4AB),
-        onError = Color(0xFF690005),
-        errorContainer = Color(0xFF93000A),
-        onErrorContainer = Color(0xFFFFDAD6),
-        background = Color(0xFF121414),
-        onBackground = Color(0xFFE3E2E2),
-        surface = Color(0xFF121414),
-        onSurface = Color(0xFFE3E2E2),
-        surfaceVariant = Color(0xFF46474A),
-        onSurfaceVariant = Color(0xFFC7C6CA),
-        outline = Color(0xFF909094),
-        outlineVariant = Color(0xFF46474A),
-        scrim = Color(0xFF000000),
-        inverseSurface = Color(0xFFE3E2E2),
-        inverseOnSurface = Color(0xFF2F3131),
-        inversePrimary = Color(0xFF5D5F5F),
-        surfaceDim = Color(0xFF121414),
-        surfaceBright = Color(0xFF383939),
-        surfaceContainerLowest = Color(0xFF0D0E0F),
-        surfaceContainerLow = Color(0xFF1B1C1C),
-        surfaceContainer = Color(0xFF1F2020),
-        surfaceContainerHigh = Color(0xFF292A2A),
-        surfaceContainerHighest = Color(0xFF343535),
+/** Material's own tonal-spot scheme generated from [seed], the same algorithm Android uses. */
+private fun seedColorScheme(
+    seed: Color,
+    dark: Boolean,
+): ColorScheme {
+    val s: DynamicScheme = SchemeTonalSpot(Hct.fromInt(seed.toArgb()), isDark = dark, contrastLevel = 0.0)
+    fun c(argb: Int) = Color(argb)
+    val base = if (dark) darkColorScheme() else lightColorScheme()
+    return base.copy(
+        primary = c(s.primary),
+        onPrimary = c(s.onPrimary),
+        primaryContainer = c(s.primaryContainer),
+        onPrimaryContainer = c(s.onPrimaryContainer),
+        inversePrimary = c(s.inversePrimary),
+        secondary = c(s.secondary),
+        onSecondary = c(s.onSecondary),
+        secondaryContainer = c(s.secondaryContainer),
+        onSecondaryContainer = c(s.onSecondaryContainer),
+        tertiary = c(s.tertiary),
+        onTertiary = c(s.onTertiary),
+        tertiaryContainer = c(s.tertiaryContainer),
+        onTertiaryContainer = c(s.onTertiaryContainer),
+        error = c(s.error),
+        onError = c(s.onError),
+        errorContainer = c(s.errorContainer),
+        onErrorContainer = c(s.onErrorContainer),
+        background = c(s.background),
+        onBackground = c(s.onBackground),
+        surface = c(s.surface),
+        onSurface = c(s.onSurface),
+        surfaceVariant = c(s.surfaceVariant),
+        onSurfaceVariant = c(s.onSurfaceVariant),
+        surfaceTint = c(s.surfaceTint),
+        inverseSurface = c(s.inverseSurface),
+        inverseOnSurface = c(s.inverseOnSurface),
+        outline = c(s.outline),
+        outlineVariant = c(s.outlineVariant),
+        scrim = c(s.scrim),
+        surfaceBright = c(s.surfaceBright),
+        surfaceDim = c(s.surfaceDim),
+        surfaceContainerLowest = c(s.surfaceContainerLowest),
+        surfaceContainerLow = c(s.surfaceContainerLow),
+        surfaceContainer = c(s.surfaceContainer),
+        surfaceContainerHigh = c(s.surfaceContainerHigh),
+        surfaceContainerHighest = c(s.surfaceContainerHighest),
+    )
+}
+
+/**
+ * Pure black: the screen background becomes #000000. Rows and cards keep their tinted container
+ * colours, so they still stand out from the background.
+ */
+private fun ColorScheme.pureBlack(): ColorScheme =
+    copy(
+        background = Color.Black,
+        surface = Color.Black,
+        surfaceDim = Color.Black,
+        surfaceContainerLowest = Color.Black,
     )

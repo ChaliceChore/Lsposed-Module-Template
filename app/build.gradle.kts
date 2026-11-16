@@ -141,6 +141,7 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.aboutlibraries.compose.m3)
+    implementation(libs.material.color.utilities)
     debugImplementation(libs.compose.ui.tooling)
 }
 

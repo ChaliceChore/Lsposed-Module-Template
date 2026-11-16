@@ -127,14 +127,16 @@ fun SwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val haptics = LocalHapticFeedback.current
     Preference(
         title = { Text(title) },
+        enabled = enabled,
         modifier =
             modifier
                 .rowSurface(shape)
-                .toggleable(value = checked, role = Role.Switch) { on ->
+                .toggleable(value = checked, enabled = enabled, role = Role.Switch) { on ->
                     haptics.performHapticFeedback(
                         if (on) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff,
                     )
@@ -146,6 +148,7 @@ fun SwitchRow(
             IconSwitch(
                 checked = checked,
                 onCheckedChange = null,
+                enabled = enabled,
                 modifier = Modifier.padding(horizontal = Tokens.RowPadding),
             )
         },
@@ -186,9 +189,11 @@ fun NavigationRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     trailing: RowTrailing = RowTrailing.Chevron,
+    enabled: Boolean = true,
 ) {
     Preference(
         title = { Text(title) },
+        enabled = enabled,
         modifier = modifier.rowSurface(shape),
         icon = { Icon(icon, contentDescription = null) },
         summary = summary?.let { { Text(it) } },

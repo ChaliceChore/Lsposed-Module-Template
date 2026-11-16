@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AppShortcut
 import androidx.compose.material.icons.outlined.BrightnessAuto
 import androidx.compose.material.icons.outlined.Colorize
+import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.AlertDialog
@@ -66,6 +67,7 @@ fun AppearanceScreen(
     appearance: Appearance,
     onThemeModeChange: (ThemeMode) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
+    onPureBlackChange: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
     DetailScaffold(
@@ -99,6 +101,18 @@ fun AppearanceScreen(
                                 onCheckedChange = onDynamicColorChange,
                             )
                         }
+                    }
+                    add { shape ->
+                        SwitchRow(
+                            shape = shape,
+                            icon = Icons.Outlined.Contrast,
+                            title = stringResource(R.string.pure_black_title),
+                            summary = stringResource(R.string.pure_black_summary),
+                            checked = appearance.pureBlack,
+                            onCheckedChange = onPureBlackChange,
+                            // Light theme never shows the dark surfaces this changes.
+                            enabled = appearance.themeMode != ThemeMode.LIGHT,
+                        )
                     }
                 }
             RowGroup(rows = rows, modifier = Modifier.padding(top = Tokens.ScreenMargin))

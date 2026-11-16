@@ -79,6 +79,8 @@
     <string name="appearance_summary_icon_hidden">icon hidden</string>
     <string name="dynamic_color_title">Dynamic color</string>
     <string name="dynamic_color_summary">Colors from your wallpaper</string>
+    <string name="pure_black_title">Pure black</string>
+    <string name="pure_black_summary">Use black backgrounds in dark mode</string>
     <string name="section_launcher">Launcher</string>
     <string name="launcher_icon_title">Show launcher icon</string>
     <string name="launcher_icon_summary">Settings stay reachable from your Xposed manager</string>

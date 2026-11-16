@@ -113,6 +113,10 @@ class MainViewModel(
         viewModelScope.launch(Dispatchers.IO) { appearanceRepository.setDynamicColor(enabled) }
     }
 
+    fun setPureBlack(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) { appearanceRepository.setPureBlack(enabled) }
+    }
+
     fun apply() {
         viewModelScope.launch {
             applyLock.withLock {

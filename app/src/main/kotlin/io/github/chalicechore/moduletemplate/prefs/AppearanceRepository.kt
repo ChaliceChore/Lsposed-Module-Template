@@ -12,6 +12,7 @@ enum class ThemeMode {
 data class Appearance(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
+    val pureBlack: Boolean = false,
 )
 
 class AppearanceRepository(
@@ -23,6 +24,7 @@ class AppearanceRepository(
                 ThemeMode.entries.firstOrNull { it.name == preferences.getString(THEME_MODE, null) }
                     ?: ThemeMode.SYSTEM,
             dynamicColor = preferences.getBoolean(DYNAMIC_COLOR, true),
+            pureBlack = preferences.getBoolean(PURE_BLACK, false),
         )
 
     fun observe(): Flow<Appearance> = preferences.observe(::appearance)
@@ -35,9 +37,14 @@ class AppearanceRepository(
         preferences.edit().putBoolean(DYNAMIC_COLOR, enabled).apply()
     }
 
+    fun setPureBlack(enabled: Boolean) {
+        preferences.edit().putBoolean(PURE_BLACK, enabled).apply()
+    }
+
     companion object {
         const val FILE = "appearance"
         private const val THEME_MODE = "theme_mode"
         private const val DYNAMIC_COLOR = "dynamic_color"
+        private const val PURE_BLACK = "pure_black"
     }
 }

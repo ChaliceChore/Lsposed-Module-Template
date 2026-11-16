@@ -225,6 +225,7 @@ private fun SettingsNavigation(
                             appearance = state.appearance,
                             onThemeModeChange = viewModel::setThemeMode,
                             onDynamicColorChange = viewModel::setDynamicColor,
+                            onPureBlackChange = viewModel::setPureBlack,
                             onBack = { popIfTop(Destination.Appearance) },
                         )
                     }
