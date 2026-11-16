@@ -53,7 +53,9 @@ import io.github.chalicechore.moduletemplate.ui.screen.AppearanceScreen
 import io.github.chalicechore.moduletemplate.ui.screen.CategoryScreen
 import io.github.chalicechore.moduletemplate.ui.screen.HomeScreen
 import io.github.chalicechore.moduletemplate.ui.screen.LicensesScreen
+import io.github.chalicechore.moduletemplate.ui.screen.FeatureHealthScreen
 import io.github.chalicechore.moduletemplate.ui.screen.MoreModulesScreen
+import io.github.chalicechore.moduletemplate.ui.screen.TroubleshootingGroup
 import io.github.chalicechore.moduletemplate.ui.theme.ModuleTheme
 import io.github.chalicechore.moduletemplate.ui.theme.isReducedMotion
 
@@ -73,6 +75,8 @@ sealed interface Destination {
 
     data object MoreModules : Destination
 
+    data object FeatureHealth : Destination
+
     fun toRoute(): String =
         when (this) {
             Home -> HOME
@@ -81,6 +85,7 @@ sealed interface Destination {
             About -> ABOUT
             Licenses -> LICENSES
             MoreModules -> MORE_MODULES
+            FeatureHealth -> FEATURE_HEALTH
         }
 
     companion object {
@@ -90,6 +95,7 @@ sealed interface Destination {
         private const val ABOUT = "about"
         private const val LICENSES = "licenses"
         private const val MORE_MODULES = "more_modules"
+        private const val FEATURE_HEALTH = "feature_health"
 
         fun fromRoute(route: String): Destination =
             when {
@@ -107,6 +113,10 @@ sealed interface Destination {
 
                 route == MORE_MODULES -> {
                     MoreModules
+                }
+
+                route == FEATURE_HEALTH -> {
+                    FeatureHealth
                 }
 
                 route.startsWith(CATEGORY) -> {
@@ -180,6 +190,7 @@ private fun SettingsNavigation(
         }
     }
     ApplyHaptics(state.phase)
+    val troubleshooting by viewModel.troubleshooting.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
     val transitions = rememberScreenTransitions()
     var restartDismissed by rememberSaveable { mutableStateOf(false) }
@@ -215,7 +226,7 @@ private fun SettingsNavigation(
                             onOpenAppearance = { backStack.add(Destination.Appearance) },
                             onOpenAbout = { backStack.add(Destination.About) },
                             onModuleEnabledChange = viewModel::setModuleEnabled,
-                            onOpenHealth = { backStack.add(Destination.About) },
+                            onOpenHealth = { backStack.add(Destination.FeatureHealth) },
                             onApply = viewModel::apply,
                         )
                     }
@@ -225,6 +236,7 @@ private fun SettingsNavigation(
                             settings = state.desired,
                             onSwitchChange = viewModel::setSwitch,
                             onChoiceChange = viewModel::setChoice,
+                            failed = state.failedFeatures,
                             onBack = { popIfTop(key) },
                         )
                     }
@@ -232,7 +244,23 @@ private fun SettingsNavigation(
                         AboutScreen(
                             onOpenLicenses = { backStack.add(Destination.Licenses) },
                             onOpenMoreModules = { backStack.add(Destination.MoreModules) },
+                            troubleshooting = {
+                                TroubleshootingGroup(
+                                    state = state,
+                                    troubleshooting = troubleshooting,
+                                    onOpenHealth = { backStack.add(Destination.FeatureHealth) },
+                                    onDebugLoggingChange = viewModel::setDebugLogging,
+                                )
+                            },
                             onBack = { popIfTop(Destination.About) },
+                        )
+                    }
+                    entry<Destination.FeatureHealth> {
+                        FeatureHealthScreen(
+                            state = state,
+                            troubleshooting = troubleshooting,
+                            onHealthAlertsChange = viewModel::setHealthAlerts,
+                            onBack = { popIfTop(Destination.FeatureHealth) },
                         )
                     }
                     entry<Destination.MoreModules> {

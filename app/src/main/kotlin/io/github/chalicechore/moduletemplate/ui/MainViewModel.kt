@@ -20,6 +20,9 @@ import io.github.chalicechore.moduletemplate.prefs.HookStatusRepository
 import io.github.chalicechore.moduletemplate.prefs.PrefsRepository
 import io.github.chalicechore.moduletemplate.prefs.TargetRestarter
 import io.github.chalicechore.moduletemplate.prefs.ThemeMode
+import io.github.chalicechore.moduletemplate.prefs.SettingsKeys
+import io.github.chalicechore.moduletemplate.prefs.Troubleshooting
+import io.github.chalicechore.moduletemplate.prefs.TroubleshootingRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -95,6 +98,7 @@ class MainViewModel(
     private val preferences: PrefsRepository,
     private val appearanceRepository: AppearanceRepository,
     private val hookStatusRepository: HookStatusRepository,
+    private val troubleshootingRepository: TroubleshootingRepository,
     private val framework: FrameworkConnection,
     private val restarter: TargetRestarter,
 ) : ViewModel() {
@@ -148,6 +152,29 @@ class MainViewModel(
         clearFailure()
         viewModelScope.launch(writer) {
             preferences.save(preferences.desiredSettings().copy(choice = choice))
+        }
+    }
+
+    val troubleshooting: StateFlow<Troubleshooting> =
+        troubleshootingRepository
+            .observe()
+            .flowOn(Dispatchers.IO)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, Troubleshooting())
+
+    fun setHealthAlerts(on: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) { troubleshootingRepository.setHealthAlerts(on) }
+    }
+
+    /**
+     * Debug logging: on for [TroubleshootingRepository.DEBUG_HOURS] at most. Sent to the hook
+     * straight away (it is read live), so it takes effect without a restart.
+     */
+    fun setDebugLogging(on: Boolean) {
+        val until =
+            if (on) System.currentTimeMillis() + TroubleshootingRepository.DEBUG_HOURS * 3_600_000L else 0L
+        viewModelScope.launch(writer) {
+            troubleshootingRepository.setDebugUntil(until)
+            framework.publish { it.putLong(SettingsKeys.DEBUG_UNTIL, until) }
         }
     }
 
@@ -242,6 +269,7 @@ class MainViewModel(
                         preferences = app.prefsRepository,
                         appearanceRepository = app.appearanceRepository,
                         hookStatusRepository = app.hookStatusRepository,
+                        troubleshootingRepository = app.troubleshootingRepository,
                         framework = app.frameworkConnection,
                         restarter = app.targetRestarter,
                     )

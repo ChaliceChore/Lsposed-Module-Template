@@ -14,7 +14,11 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.RadioButtonChecked
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -36,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.prefs.Choice
 import io.github.chalicechore.moduletemplate.prefs.FeatureCategory
+import io.github.chalicechore.moduletemplate.prefs.FeatureHealth
 import io.github.chalicechore.moduletemplate.prefs.FeatureSettings
 import io.github.chalicechore.moduletemplate.prefs.FeatureSwitch
 import io.github.chalicechore.moduletemplate.ui.ChoiceCategory
@@ -60,7 +65,10 @@ fun CategoryScreen(
     onSwitchChange: (FeatureSwitch, Boolean) -> Unit,
     onChoiceChange: (Choice) -> Unit,
     onBack: () -> Unit,
+    failed: Map<FeatureSwitch, FeatureHealth.Failed> = emptyMap(),
 ) {
+    var reason by rememberSaveable { mutableStateOf<String?>(null) }
+    val target = stringResource(R.string.target_label)
     var showChoiceDialog by rememberSaveable { mutableStateOf(false) }
     val switches = remember(category) { FeatureSwitch.entries.filter { it.category == category } }
     DetailScaffold(title = stringResource(category.titleRes), onBack = onBack) { contentPadding ->
@@ -71,6 +79,7 @@ fun CategoryScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(contentPadding),
         ) {
+            if (switches.any { it in failed }) BrokenBanner(target)
             RowGroup(
                 rows =
                     switches.map { switch ->
@@ -82,6 +91,12 @@ fun CategoryScreen(
                                 summary = stringResource(switch.summaryRes),
                                 checked = settings.isOn(switch),
                                 onCheckedChange = { onSwitchChange(switch, it) },
+                                below =
+                                    failed[switch]?.let { f ->
+                                        {
+                                            BrokenChip(target) { reason = f.reason }
+                                        }
+                                    },
                             )
                         }
                     },
@@ -104,6 +119,14 @@ fun CategoryScreen(
                 )
             }
         }
+    }
+    reason?.let { text ->
+        AlertDialog(
+            onDismissRequest = { reason = null },
+            title = { Text(stringResource(R.string.broken_reason_title)) },
+            text = { Text(text) },
+            confirmButton = { TextButton(onClick = { reason = null }) { Text(stringResource(R.string.dialog_ok)) } },
+        )
     }
     if (showChoiceDialog) {
         ChoiceDialog(
@@ -169,4 +192,44 @@ private fun ChoiceDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
         },
     )
+}
+
+/** Red "Doesn't work in this <target> version" label; tapping it shows the reason. */
+@Composable
+private fun BrokenChip(
+    target: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+        modifier = Modifier.padding(top = 6.dp),
+    ) {
+        Text(
+            stringResource(R.string.broken_chip, target),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+        )
+    }
+}
+
+@Composable
+private fun BrokenBanner(target: String) {
+    Surface(
+        shape = RoundedCornerShape(Tokens.OuterRowCorner),
+        color = MaterialTheme.colorScheme.errorContainer,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Tokens.ScreenMargin).padding(top = Tokens.ScreenMargin),
+    ) {
+        Row(Modifier.padding(Tokens.RowPadding), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                stringResource(R.string.broken_banner, target),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+        }
+    }
 }

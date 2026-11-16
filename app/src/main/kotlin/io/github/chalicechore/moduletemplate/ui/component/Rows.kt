@@ -128,6 +128,7 @@ fun SwitchRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    below: (@Composable () -> Unit)? = null,
 ) {
     val haptics = LocalHapticFeedback.current
     Preference(
@@ -143,7 +144,16 @@ fun SwitchRow(
                     onCheckedChange(on)
                 },
         icon = { Icon(icon, contentDescription = null) },
-        summary = { Text(summary) },
+        summary = {
+            if (below == null) {
+                Text(summary)
+            } else {
+                Column {
+                    Text(summary)
+                    below()
+                }
+            }
+        },
         widgetContainer = {
             IconSwitch(
                 checked = checked,

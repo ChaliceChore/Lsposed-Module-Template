@@ -3,6 +3,8 @@
 
     <!-- "More modules" and the update check read the GitHub API. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- "Alert when a feature breaks" in Feature health. Asked for only when switched on. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- TEMPLATE: lets the app see the hooked package (app info, restart). -->
     <queries>
