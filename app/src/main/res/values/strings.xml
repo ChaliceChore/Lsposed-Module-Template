@@ -11,6 +11,19 @@
     <string name="status_applying_title">Applying changes</string>
     <string name="status_step_saving">Saving settings</string>
     <string name="status_step_restarting">Restarting %1$s</string>
+    <string name="status_pending_title">Changes not applied</string>
+    <string name="status_pending_body">Apply them to restart %1$s with the new settings</string>
+    <string name="status_off_title">Turned off</string>
+    <string name="status_off_body">%1$s runs unchanged. Turn the switch on to use the module.</string>
+    <string name="status_not_loaded_title">Not loaded yet</string>
+    <string name="status_not_loaded_body">%1$s started before the module was enabled. Restart it to load the module.</string>
+    <string name="status_partly_title">Partly active</string>
+    <plurals name="status_partly_body">
+        <item quantity="one">%1$d feature needs attention</item>
+        <item quantity="other">%1$d features need attention</item>
+    </plurals>
+    <string name="versions_footer">%1$s v%2$s · %3$s v%4$s</string>
+    <string name="versions_footer_no_target">%1$s not installed · %2$s v%3$s</string>
 
     <!-- Home -->
     <string name="section_always_on">Always on</string>

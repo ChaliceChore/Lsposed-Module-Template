@@ -200,6 +200,8 @@ private fun SettingsNavigation(
                             onOpenCategory = { backStack.add(Destination.Category(it)) },
                             onOpenAppearance = { backStack.add(Destination.Appearance) },
                             onOpenAbout = { backStack.add(Destination.About) },
+                            onModuleEnabledChange = viewModel::setModuleEnabled,
+                            onOpenHealth = { backStack.add(Destination.About) },
                         )
                     }
                     entry<Destination.Category> { key ->

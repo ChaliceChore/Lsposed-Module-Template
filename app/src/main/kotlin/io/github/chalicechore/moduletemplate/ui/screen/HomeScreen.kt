@@ -26,11 +26,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.chalicechore.moduletemplate.BuildConfig
 import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.prefs.Appearance
 import io.github.chalicechore.moduletemplate.prefs.FeatureCategory
@@ -63,6 +66,8 @@ fun HomeScreen(
     onOpenCategory: (FeatureCategory) -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenAbout: () -> Unit,
+    onModuleEnabledChange: (Boolean) -> Unit,
+    onOpenHealth: () -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val bottomPadding = listBottomPadding()
@@ -91,8 +96,13 @@ fun HomeScreen(
             item(key = "status", contentType = "status") {
                 StatusCard(
                     state = state,
-                    modifier = Modifier.padding(vertical = Tokens.ScreenMargin),
+                    onModuleEnabledChange = onModuleEnabledChange,
+                    onOpenHealth = onOpenHealth,
+                    modifier = Modifier.padding(top = Tokens.ScreenMargin),
                 )
+            }
+            item(key = "versions", contentType = "footnote") {
+                VersionsFooter()
             }
             item(key = "always_on_header", contentType = "header") {
                 SectionHeader(stringResource(R.string.section_always_on))
@@ -208,4 +218,29 @@ private fun appearanceSummary(
     val iconHidden =
         stringResource(R.string.appearance_summary_icon_hidden).takeUnless { launcherIconVisible }
     return listOfNotNull(theme, dynamic, iconHidden).joinToString(", ")
+}
+
+/** "<Target> v15.2.1 · <Module> v1.4.0", for support requests and screenshots. */
+@Composable
+private fun VersionsFooter() {
+    val context = LocalContext.current
+    val targetVersion =
+        remember {
+            runCatching {
+                context.packageManager.getPackageInfo(BuildConfig.TARGET_PACKAGE, 0).versionName
+            }.getOrNull()
+        }
+    val target = stringResource(R.string.target_label)
+    val module = stringResource(R.string.app_name)
+    Text(
+        text =
+            if (targetVersion != null) {
+                stringResource(R.string.versions_footer, target, targetVersion, module, BuildConfig.VERSION_NAME)
+            } else {
+                stringResource(R.string.versions_footer_no_target, target, module, BuildConfig.VERSION_NAME)
+            },
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = Tokens.RowPadding + 4.dp, vertical = 8.dp),
+    )
 }

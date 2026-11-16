@@ -14,6 +14,8 @@ import io.github.chalicechore.moduletemplate.prefs.FeatureSettings
 import io.github.chalicechore.moduletemplate.prefs.FeatureSwitch
 import io.github.chalicechore.moduletemplate.prefs.FrameworkConnection
 import io.github.chalicechore.moduletemplate.prefs.FrameworkInfo
+import io.github.chalicechore.moduletemplate.prefs.HookStatus
+import io.github.chalicechore.moduletemplate.prefs.HookStatusRepository
 import io.github.chalicechore.moduletemplate.prefs.PrefsRepository
 import io.github.chalicechore.moduletemplate.prefs.TargetRestarter
 import io.github.chalicechore.moduletemplate.prefs.ThemeMode
@@ -57,6 +59,7 @@ sealed interface UiState {
         val appearance: Appearance,
         val framework: FrameworkInfo?,
         val phase: ApplyPhase,
+        val hookStatus: HookStatus = HookStatus(),
     ) : UiState {
         val appliedOrDefault: FeatureSettings get() = applied ?: FeatureSettings()
         val pendingCount: Int get() = desired.countDifferences(appliedOrDefault)
@@ -65,12 +68,32 @@ sealed interface UiState {
 
         /** Applying the pending changes restarts the target (false: only LIVE ones are left). */
         val restartNeeded: Boolean get() = desired.needsRestart(appliedOrDefault)
+
+        /**
+         * The module is on and nothing is pending, but the running target never loaded it
+         * (it started before the module was enabled in LSPosed): restarting the target fixes it.
+         */
+        val targetNeedsRestart: Boolean
+            get() =
+                framework != null && appliedOrDefault.moduleEnabled && pendingCount == 0 &&
+                    !hookStatus.loadedSinceBoot
+
+        /** Features whose hooks failed at the target's last start. */
+        val failedFeatures get() = hookStatus.failed
     }
 }
+
+private data class Stored(
+    val desired: FeatureSettings,
+    val applied: FeatureSettings?,
+    val appearance: Appearance,
+    val hook: HookStatus,
+)
 
 class MainViewModel(
     private val preferences: PrefsRepository,
     private val appearanceRepository: AppearanceRepository,
+    private val hookStatusRepository: HookStatusRepository,
     private val framework: FrameworkConnection,
     private val restarter: TargetRestarter,
 ) : ViewModel() {
@@ -82,13 +105,17 @@ class MainViewModel(
 
     val uiState: StateFlow<UiState> =
         combine(
-            preferences.observeDesired().flowOn(Dispatchers.IO),
-            preferences.observeApplied().flowOn(Dispatchers.IO),
-            appearanceRepository.observe().flowOn(Dispatchers.IO),
+            combine(
+                preferences.observeDesired(),
+                preferences.observeApplied(),
+                appearanceRepository.observe(),
+                hookStatusRepository.observe(),
+            ) { desired, applied, appearance, hook -> Stored(desired, applied, appearance, hook) }
+                .flowOn(Dispatchers.IO),
             framework.framework,
             phase,
-        ) { desired, applied, appearance, info, phase ->
-            UiState.Ready(desired, applied, appearance, info, phase)
+        ) { stored, info, phase ->
+            UiState.Ready(stored.desired, stored.applied, stored.appearance, info, phase, stored.hook)
         }.stateIn(viewModelScope, SharingStarted.Eagerly, UiState.Loading)
 
     fun setSwitch(
@@ -174,6 +201,7 @@ class MainViewModel(
                     MainViewModel(
                         preferences = app.prefsRepository,
                         appearanceRepository = app.appearanceRepository,
+                        hookStatusRepository = app.hookStatusRepository,
                         framework = app.frameworkConnection,
                         restarter = app.targetRestarter,
                     )
