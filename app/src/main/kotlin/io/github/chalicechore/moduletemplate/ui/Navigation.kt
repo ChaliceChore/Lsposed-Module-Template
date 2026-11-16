@@ -42,6 +42,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.chalicechore.moduletemplate.BuildConfig
+import io.github.chalicechore.moduletemplate.ModuleConfig
 import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.prefs.FeatureCategory
 import io.github.chalicechore.moduletemplate.prefs.SettingsKeys
@@ -55,6 +56,7 @@ import io.github.chalicechore.moduletemplate.ui.screen.HomeScreen
 import io.github.chalicechore.moduletemplate.ui.screen.LicensesScreen
 import io.github.chalicechore.moduletemplate.ui.screen.FeatureHealthScreen
 import io.github.chalicechore.moduletemplate.ui.screen.MoreModulesScreen
+import io.github.chalicechore.moduletemplate.ui.screen.SearchScreen
 import io.github.chalicechore.moduletemplate.ui.screen.TroubleshootingGroup
 import io.github.chalicechore.moduletemplate.ui.theme.ModuleTheme
 import io.github.chalicechore.moduletemplate.ui.theme.isReducedMotion
@@ -63,9 +65,13 @@ import io.github.chalicechore.moduletemplate.ui.theme.isReducedMotion
 sealed interface Destination {
     data object Home : Destination
 
+    /** @property highlight key of a row to flash briefly, when opened from search. */
     data class Category(
         val category: FeatureCategory,
+        val highlight: String? = null,
     ) : Destination
+
+    data object Search : Destination
 
     data object Appearance : Destination
 
@@ -80,7 +86,8 @@ sealed interface Destination {
     fun toRoute(): String =
         when (this) {
             Home -> HOME
-            is Category -> "$CATEGORY${category.name}"
+            is Category -> "$CATEGORY${category.name}" + (highlight?.let { "#$it" } ?: "")
+            Search -> SEARCH
             Appearance -> APPEARANCE
             About -> ABOUT
             Licenses -> LICENSES
@@ -94,6 +101,7 @@ sealed interface Destination {
         private const val APPEARANCE = "appearance"
         private const val ABOUT = "about"
         private const val LICENSES = "licenses"
+        private const val SEARCH = "search"
         private const val MORE_MODULES = "more_modules"
         private const val FEATURE_HEALTH = "feature_health"
 
@@ -119,10 +127,15 @@ sealed interface Destination {
                     FeatureHealth
                 }
 
+                route == SEARCH -> {
+                    Search
+                }
+
                 route.startsWith(CATEGORY) -> {
+                    val rest = route.removePrefix(CATEGORY)
                     FeatureCategory.entries
-                        .firstOrNull { it.name == route.removePrefix(CATEGORY) }
-                        ?.let(::Category)
+                        .firstOrNull { it.name == rest.substringBefore('#') }
+                        ?.let { Category(it, rest.substringAfter('#', "").ifEmpty { null }) }
                         ?: Home
                 }
 
@@ -228,6 +241,7 @@ private fun SettingsNavigation(
                             onModuleEnabledChange = viewModel::setModuleEnabled,
                             onOpenHealth = { backStack.add(Destination.FeatureHealth) },
                             onApply = viewModel::apply,
+                            onOpenSearch = if (ModuleConfig.SEARCH) ({ backStack.add(Destination.Search) }) else null,
                         )
                     }
                     entry<Destination.Category> { key ->
@@ -237,6 +251,7 @@ private fun SettingsNavigation(
                             onSwitchChange = viewModel::setSwitch,
                             onChoiceChange = viewModel::setChoice,
                             failed = state.failedFeatures,
+                            highlight = key.highlight,
                             onBack = { popIfTop(key) },
                         )
                     }
@@ -253,6 +268,15 @@ private fun SettingsNavigation(
                                 )
                             },
                             onBack = { popIfTop(Destination.About) },
+                        )
+                    }
+                    entry<Destination.Search> {
+                        SearchScreen(
+                            onOpenResult = { category, row ->
+                                popIfTop(Destination.Search)
+                                backStack.add(Destination.Category(category, row))
+                            },
+                            onBack = { popIfTop(Destination.Search) },
                         )
                     }
                     entry<Destination.FeatureHealth> {

@@ -2,6 +2,8 @@
 
 package io.github.chalicechore.moduletemplate.ui.screen
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +33,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -43,6 +50,7 @@ import io.github.chalicechore.moduletemplate.prefs.FeatureCategory
 import io.github.chalicechore.moduletemplate.prefs.FeatureHealth
 import io.github.chalicechore.moduletemplate.prefs.FeatureSettings
 import io.github.chalicechore.moduletemplate.prefs.FeatureSwitch
+import io.github.chalicechore.moduletemplate.prefs.SettingsKeys
 import io.github.chalicechore.moduletemplate.ui.ChoiceCategory
 import io.github.chalicechore.moduletemplate.ui.component.DetailScaffold
 import io.github.chalicechore.moduletemplate.ui.component.NavigationRow
@@ -66,7 +74,9 @@ fun CategoryScreen(
     onChoiceChange: (Choice) -> Unit,
     onBack: () -> Unit,
     failed: Map<FeatureSwitch, FeatureHealth.Failed> = emptyMap(),
+    highlight: String? = null,
 ) {
+    val flash = rememberHighlightFlash(highlight)
     var reason by rememberSaveable { mutableStateOf<String?>(null) }
     val target = stringResource(R.string.target_label)
     var showChoiceDialog by rememberSaveable { mutableStateOf(false) }
@@ -91,6 +101,7 @@ fun CategoryScreen(
                                 summary = stringResource(switch.summaryRes),
                                 checked = settings.isOn(switch),
                                 onCheckedChange = { onSwitchChange(switch, it) },
+                                modifier = Modifier.highlightFlash(shape, flash.takeIf { switch.key == highlight }, MaterialTheme.colorScheme.primary),
                                 below =
                                     failed[switch]?.let { f ->
                                         {
@@ -114,6 +125,7 @@ fun CategoryScreen(
                                 summary = stringResource(settings.choice.labelRes),
                                 onClick = { showChoiceDialog = true },
                                 trailing = RowTrailing.None,
+                                modifier = Modifier.highlightFlash(shape, flash.takeIf { highlight == SettingsKeys.CHOICE }, MaterialTheme.colorScheme.primary),
                             )
                         },
                 )
@@ -233,3 +245,32 @@ private fun BrokenBanner(target: String) {
         }
     }
 }
+
+/** 0..1 strength of the "you searched for this" flash; fades out over about two seconds. */
+@Composable
+private fun rememberHighlightFlash(highlight: String?): Animatable<Float, *> {
+    val flash = remember { Animatable(0f) }
+    LaunchedEffect(highlight) {
+        if (highlight == null) return@LaunchedEffect
+        repeat(2) {
+            flash.animateTo(1f, tween(250))
+            flash.animateTo(0.2f, tween(450))
+        }
+        flash.animateTo(0f, tween(600))
+    }
+    return flash
+}
+
+private fun Modifier.highlightFlash(
+    shape: Shape,
+    flash: Animatable<Float, *>?,
+    color: Color,
+): Modifier =
+    if (flash == null) {
+        this
+    } else {
+        this.clip(shape).drawWithContent {
+            drawContent()
+            drawRect(color.copy(alpha = 0.24f * flash.value))
+        }
+    }
