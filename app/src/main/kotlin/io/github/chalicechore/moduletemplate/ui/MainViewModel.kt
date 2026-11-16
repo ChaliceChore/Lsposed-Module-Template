@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import io.github.chalicechore.moduletemplate.HomeLayout
 import io.github.chalicechore.moduletemplate.ModuleApp
 import io.github.chalicechore.moduletemplate.prefs.Appearance
 import io.github.chalicechore.moduletemplate.prefs.Applies
@@ -156,6 +157,10 @@ class MainViewModel(
 
     fun setDynamicColor(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) { appearanceRepository.setDynamicColor(enabled) }
+    }
+
+    fun setHomeLayout(layout: HomeLayout) {
+        viewModelScope.launch(Dispatchers.IO) { appearanceRepository.setHomeLayout(layout) }
     }
 
     fun setPureBlack(enabled: Boolean) {

@@ -73,6 +73,12 @@
     <string name="pending_change_on">On</string>
     <string name="master_switch_title">Module</string>
     <string name="try_it">Try it</string>
+    <string name="try_it_failed">Couldn\'t open %1$s</string>
+    <string name="try_it_pending_title">Changes aren\'t applied yet</string>
+    <string name="try_it_pending_body">What you try now won\'t include your latest changes.</string>
+    <string name="try_it_apply_and_try">Apply and try</string>
+    <string name="try_it_anyway">Try anyway</string>
+    <string name="search_hint">Search settings</string>
     <string name="pending_area_home">Home</string>
     <string name="pending_change_off">Off</string>
     <string name="apply_and_restart">Apply and restart %1$s</string>

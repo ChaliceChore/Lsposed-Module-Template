@@ -1,6 +1,8 @@
 package io.github.chalicechore.moduletemplate.prefs
 
 import android.content.SharedPreferences
+import io.github.chalicechore.moduletemplate.HomeLayout
+import io.github.chalicechore.moduletemplate.ModuleConfig
 import kotlinx.coroutines.flow.Flow
 
 enum class ThemeMode {
@@ -13,6 +15,7 @@ data class Appearance(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
     val pureBlack: Boolean = false,
+    val homeLayout: HomeLayout = ModuleConfig.defaultHomeLayout,
 )
 
 class AppearanceRepository(
@@ -25,6 +28,9 @@ class AppearanceRepository(
                     ?: ThemeMode.SYSTEM,
             dynamicColor = preferences.getBoolean(DYNAMIC_COLOR, true),
             pureBlack = preferences.getBoolean(PURE_BLACK, false),
+            homeLayout =
+                HomeLayout.entries.firstOrNull { it.name == preferences.getString(HOME_LAYOUT, null) }
+                    ?: ModuleConfig.defaultHomeLayout,
         )
 
     fun observe(): Flow<Appearance> = preferences.observe(::appearance)
@@ -41,10 +47,15 @@ class AppearanceRepository(
         preferences.edit().putBoolean(PURE_BLACK, enabled).apply()
     }
 
+    fun setHomeLayout(layout: HomeLayout) {
+        preferences.edit().putString(HOME_LAYOUT, layout.name).apply()
+    }
+
     companion object {
         const val FILE = "appearance"
         private const val THEME_MODE = "theme_mode"
         private const val DYNAMIC_COLOR = "dynamic_color"
         private const val PURE_BLACK = "pure_black"
+        private const val HOME_LAYOUT = "home_layout"
     }
 }
