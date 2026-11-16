@@ -46,6 +46,7 @@ android {
         buildConfigField("String", "TARGET_PACKAGE", "\"${targetPackages.first()}\"")
         buildConfigField("String", "REPO", "\"${prop("module.repo")}\"")
         buildConfigField("String", "LICENSE", "\"${prop("module.license")}\"")
+        buildConfigField("String", "TRANSLATE_URL", "\"${providers.gradleProperty("module.translate").orNull.orEmpty()}\"")
         resValue("string", "app_name", prop("module.name"))
         resValue("string", "app_description", prop("module.description"))
         resValue("string", "target_label", prop("target.label"))
