@@ -294,7 +294,7 @@ for the module folders.
 
 ---
 
-## Phase I: Testing feedback, batch 1 (2026-11-17)
+## Phase I: Testing feedback, batch 1 (2026-11-17, done)
 
 Your feedback numbers are in brackets. One commit per step; build with the low-memory script
 after each.
