@@ -136,7 +136,7 @@
 
     <!-- About -->
     <string name="about_whats_new">What\'s new</string>
-    <string name="about_whats_new_summary">Changes in version %1$s</string>
+    <string name="about_whats_new_summary">Changes in v%1$s</string>
     <string name="about_changelog">Changelog</string>
     <string name="about_changelog_summary">Notes for every release</string>
     <string name="about_source_code">Source code</string>
@@ -151,6 +151,8 @@
     <string name="section_author">Author</string>
     <string name="section_troubleshooting">Help</string>
     <string name="section_data">Data</string>
+    <string name="data_summary">Back up, restore or reset</string>
+    <string name="help_summary">Feature health, logs, report a problem</string>
     <string name="section_updates">Updates</string>
     <string name="section_legal">Legal</string>
     <string name="reset_all_title">Reset all settings</string>

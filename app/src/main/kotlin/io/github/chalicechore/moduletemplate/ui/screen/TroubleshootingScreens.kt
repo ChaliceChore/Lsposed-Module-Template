@@ -71,9 +71,9 @@ import java.util.Date
 private const val MAX_ISSUE_URL = 8_000
 private const val LOG_LINES = 200
 
-/** About's "Troubleshooting" group: Feature health, Debug logging and Report a problem. */
+/** The Help screen's rows: Feature health, Debug logging and Report a problem. */
 @Composable
-fun TroubleshootingGroup(
+private fun TroubleshootingGroup(
     state: UiState.Ready,
     troubleshooting: Troubleshooting,
     onOpenHealth: () -> Unit,
@@ -82,7 +82,6 @@ fun TroubleshootingGroup(
     var showWhat by rememberSaveable { mutableStateOf(false) }
     var showReport by rememberSaveable { mutableStateOf(false) }
     val failed = state.failedFeatures.size
-    SectionHeader(stringResource(R.string.section_troubleshooting))
     RowGroup(
         rows =
             listOf<@Composable (Shape) -> Unit>(
@@ -378,3 +377,25 @@ fun FeatureHealthScreen(
 private fun notificationsAllowed(context: Context): Boolean =
     Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+/** "Help" on Home: Feature health, Debug logging and Report a problem. */
+@Composable
+fun HelpScreen(
+    state: UiState.Ready,
+    troubleshooting: Troubleshooting,
+    onOpenHealth: () -> Unit,
+    onDebugLoggingChange: (Boolean) -> Unit,
+    onBack: () -> Unit,
+) {
+    DetailScaffold(title = stringResource(R.string.section_troubleshooting), onBack = onBack) { contentPadding ->
+        Column(
+            Modifier
+                .centeredContentWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(contentPadding)
+                .padding(top = Tokens.ScreenMargin),
+        ) {
+            TroubleshootingGroup(state, troubleshooting, onOpenHealth, onDebugLoggingChange)
+        }
+    }
+}

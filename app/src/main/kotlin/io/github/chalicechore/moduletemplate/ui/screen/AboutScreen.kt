@@ -157,8 +157,6 @@ fun AboutScreen(
     onOpenLicenses: () -> Unit,
     onOpenMoreModules: () -> Unit,
     onBack: () -> Unit,
-    troubleshooting: @Composable () -> Unit = {},
-    backup: @Composable () -> Unit = {},
 ) {
     val about = rememberAboutInfo()
     val uriHandler = LocalUriHandler.current
@@ -185,8 +183,6 @@ fun AboutScreen(
                 onOpenUrl = open,
                 onOpenLicenses = onOpenLicenses,
                 onOpenMoreModules = onOpenMoreModules,
-                troubleshooting = troubleshooting,
-                backup = backup,
             )
         }
     }
@@ -198,11 +194,9 @@ private fun LinkRows(
     onOpenUrl: (String) -> Unit,
     onOpenLicenses: () -> Unit,
     onOpenMoreModules: () -> Unit,
-    troubleshooting: @Composable () -> Unit,
-    backup: @Composable () -> Unit,
 ) {
-    // TEMPLATE: groups are Updates, Help, Data, Project, Author, Legal. Help and Data are
-    // optional and drop out with their ModuleConfig flags.
+    // TEMPLATE: groups are Updates, Project, Author, Legal. Help and Data have their own
+    // screens on Home.
     SectionHeader(stringResource(R.string.section_updates))
     RowGroup(
         rows =
@@ -230,8 +224,6 @@ private fun LinkRows(
                 },
             ),
     )
-    troubleshooting()
-    backup()
     SectionHeader(stringResource(R.string.section_project))
     RowGroup(
         rows =

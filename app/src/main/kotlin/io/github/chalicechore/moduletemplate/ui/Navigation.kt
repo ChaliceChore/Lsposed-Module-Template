@@ -50,7 +50,6 @@ import io.github.chalicechore.moduletemplate.ui.component.ApplySheetContent
 import io.github.chalicechore.moduletemplate.ui.component.ApplySheetScaffold
 import io.github.chalicechore.moduletemplate.ui.component.PendingChange
 import io.github.chalicechore.moduletemplate.ui.screen.AboutScreen
-import io.github.chalicechore.moduletemplate.ui.screen.DataGroup
 import io.github.chalicechore.moduletemplate.ui.screen.ComponentsDemoScreen
 import io.github.chalicechore.moduletemplate.ui.screen.AppearanceScreen
 import io.github.chalicechore.moduletemplate.ui.screen.CategoryScreen
@@ -59,9 +58,10 @@ import io.github.chalicechore.moduletemplate.ui.screen.LicensesScreen
 import io.github.chalicechore.moduletemplate.ui.screen.FeatureHealthScreen
 import io.github.chalicechore.moduletemplate.ui.screen.MoreModulesScreen
 import io.github.chalicechore.moduletemplate.ui.screen.SearchScreen
-import io.github.chalicechore.moduletemplate.ui.screen.TroubleshootingGroup
 import io.github.chalicechore.moduletemplate.ui.theme.ModuleTheme
 import io.github.chalicechore.moduletemplate.ui.theme.isReducedMotion
+import io.github.chalicechore.moduletemplate.ui.screen.DataScreen
+import io.github.chalicechore.moduletemplate.ui.screen.HelpScreen
 
 /** Screens. Routes are strings so the back stack survives process death. */
 sealed interface Destination {
@@ -79,6 +79,10 @@ sealed interface Destination {
 
     data object About : Destination
 
+    data object Data : Destination
+
+    data object Help : Destination
+
     data object Licenses : Destination
 
     data object MoreModules : Destination
@@ -95,6 +99,8 @@ sealed interface Destination {
             Search -> SEARCH
             Appearance -> APPEARANCE
             About -> ABOUT
+            Data -> DATA
+            Help -> HELP
             Licenses -> LICENSES
             MoreModules -> MORE_MODULES
             FeatureHealth -> FEATURE_HEALTH
@@ -106,6 +112,8 @@ sealed interface Destination {
         private const val CATEGORY = "category:"
         private const val APPEARANCE = "appearance"
         private const val ABOUT = "about"
+        private const val DATA = "data"
+        private const val HELP = "help"
         private const val LICENSES = "licenses"
         private const val SEARCH = "search"
         private const val MORE_MODULES = "more_modules"
@@ -120,6 +128,14 @@ sealed interface Destination {
 
                 route == ABOUT -> {
                     About
+                }
+
+                route == DATA -> {
+                    Data
+                }
+
+                route == HELP -> {
+                    Help
                 }
 
                 route == LICENSES -> {
@@ -249,6 +265,8 @@ private fun SettingsNavigation(
                             onOpenCategory = { backStack.add(Destination.Category(it)) },
                             onOpenAppearance = { backStack.add(Destination.Appearance) },
                             onOpenAbout = { backStack.add(Destination.About) },
+                            onOpenData = if (ModuleConfig.BACKUP_RESTORE || ModuleConfig.RESET) ({ backStack.add(Destination.Data) }) else null,
+                            onOpenHelp = { backStack.add(Destination.Help) },
                             onModuleEnabledChange = viewModel::setModuleEnabled,
                             onOpenHealth = { backStack.add(Destination.FeatureHealth) },
                             onOpenComponents = if (ModuleConfig.DEMO_COMPONENTS) ({ backStack.add(Destination.Components) }) else null,
@@ -272,22 +290,24 @@ private fun SettingsNavigation(
                         AboutScreen(
                             onOpenLicenses = { backStack.add(Destination.Licenses) },
                             onOpenMoreModules = { backStack.add(Destination.MoreModules) },
-                            troubleshooting = {
-                                TroubleshootingGroup(
-                                    state = state,
-                                    troubleshooting = troubleshooting,
-                                    onOpenHealth = { backStack.add(Destination.FeatureHealth) },
-                                    onDebugLoggingChange = viewModel::setDebugLogging,
-                                )
-                            },
-                            backup = {
-                                DataGroup(
-                                    state = state,
-                                    onRestoreSettings = viewModel::restoreSettings,
-                                    onRestoreAppearance = viewModel::restoreAppearance,
-                                )
-                            },
                             onBack = { popIfTop(Destination.About) },
+                        )
+                    }
+                    entry<Destination.Data> {
+                        DataScreen(
+                            state = state,
+                            onRestoreSettings = viewModel::restoreSettings,
+                            onRestoreAppearance = viewModel::restoreAppearance,
+                            onBack = { popIfTop(Destination.Data) },
+                        )
+                    }
+                    entry<Destination.Help> {
+                        HelpScreen(
+                            state = state,
+                            troubleshooting = troubleshooting,
+                            onOpenHealth = { backStack.add(Destination.FeatureHealth) },
+                            onDebugLoggingChange = viewModel::setDebugLogging,
+                            onBack = { popIfTop(Destination.Help) },
                         )
                     }
                     entry<Destination.Components> {

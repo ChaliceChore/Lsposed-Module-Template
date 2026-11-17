@@ -60,6 +60,9 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import io.github.chalicechore.moduletemplate.ModuleConfig
+import io.github.chalicechore.moduletemplate.ui.component.DetailScaffold
+import io.github.chalicechore.moduletemplate.ui.component.centeredContentWidth
+import io.github.chalicechore.moduletemplate.ui.theme.Tokens
 
 /** A backup's parts. Each can be saved or restored on its own. */
 enum class BackupSection(
@@ -169,12 +172,12 @@ private fun restoreDiff(
 }
 
 /**
- * About's "Data" group: Back up and Restore (ModuleConfig.BACKUP_RESTORE) and Reset all
+ * The Data screen's rows: Back up and Restore (ModuleConfig.BACKUP_RESTORE) and Reset all
  * settings (ModuleConfig.RESET). Restore and reset both turn module settings into pending
  * changes, so they go through the apply sheet and can be undone there.
  */
 @Composable
-fun DataGroup(
+private fun DataGroup(
     state: UiState.Ready,
     onRestoreSettings: (FeatureSettings) -> Unit,
     onRestoreAppearance: (Appearance) -> Unit,
@@ -202,7 +205,6 @@ fun DataGroup(
                     null
                 }
         }
-    SectionHeader(stringResource(R.string.section_data))
     RowGroup(
         rows =
             buildList<@Composable (Shape) -> Unit> {
@@ -433,4 +435,25 @@ private class MapEditor(
     override fun commit() = true
 
     override fun apply() {}
+}
+
+/** "Data" on Home: Back up, Restore and Reset all settings. */
+@Composable
+fun DataScreen(
+    state: UiState.Ready,
+    onRestoreSettings: (FeatureSettings) -> Unit,
+    onRestoreAppearance: (Appearance) -> Unit,
+    onBack: () -> Unit,
+) {
+    DetailScaffold(title = stringResource(R.string.section_data), onBack = onBack) { contentPadding ->
+        Column(
+            Modifier
+                .centeredContentWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(contentPadding)
+                .padding(top = Tokens.ScreenMargin),
+        ) {
+            DataGroup(state, onRestoreSettings, onRestoreAppearance)
+        }
+    }
 }

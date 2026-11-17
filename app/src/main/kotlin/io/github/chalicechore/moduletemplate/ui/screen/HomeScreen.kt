@@ -98,6 +98,9 @@ import io.github.chalicechore.moduletemplate.ui.component.shapeForPosition
 import io.github.chalicechore.moduletemplate.ui.icon
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
 import io.github.chalicechore.moduletemplate.ui.titleRes
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
  * Landing screen: large collapsing title, status card, then grouped rows.
@@ -112,6 +115,8 @@ fun HomeScreen(
     onOpenCategory: (FeatureCategory) -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenHelp: () -> Unit,
+    onOpenData: (() -> Unit)? = null,
     onModuleEnabledChange: (Boolean) -> Unit,
     onOpenHealth: () -> Unit,
     onApply: () -> Unit,
@@ -247,27 +252,32 @@ fun HomeScreen(
             item(key = "app_header", contentType = "header") {
                 SectionHeader(stringResource(R.string.section_app))
             }
-            item(key = "appearance", contentType = "category") {
-                NavigationRow(
-                    shape = shapeForPosition(2, 0),
-                    icon = Icons.Outlined.Palette,
-                    title = stringResource(R.string.appearance_title),
-                    summary = appearanceSummary(state.appearance, launcherIconVisible),
-                    onClick = onOpenAppearance,
-                    modifier = Modifier.padding(horizontal = Tokens.ScreenMargin),
+            // App group: Appearance, Data (optional), Help, About.
+            val appRows =
+                listOfNotNull<Triple<String, ImageVector, Pair<Int, () -> Unit>>>(
+                    Triple("appearance", Icons.Outlined.Palette, R.string.appearance_title to onOpenAppearance),
+                    onOpenData?.let { Triple("data", Icons.Outlined.SettingsBackupRestore, R.string.section_data to it) },
+                    Triple("help", Icons.AutoMirrored.Outlined.HelpOutline, R.string.section_troubleshooting to onOpenHelp),
+                    Triple("about", Icons.Outlined.Info, R.string.about_title to onOpenAbout),
                 )
-            }
-            item(key = "about", contentType = "category") {
+            items(appRows.size, key = { appRows[it].first }, contentType = { "category" }) { index ->
+                val (key, icon, target) = appRows[index]
                 NavigationRow(
-                    shape = shapeForPosition(2, 1),
-                    icon = Icons.Outlined.Info,
-                    title = stringResource(R.string.about_title),
-                    summary = stringResource(R.string.about_summary),
-                    onClick = onOpenAbout,
+                    shape = shapeForPosition(appRows.size, index),
+                    icon = icon,
+                    title = stringResource(target.first),
+                    summary =
+                        when (key) {
+                            "appearance" -> appearanceSummary(state.appearance, launcherIconVisible)
+                            "data" -> stringResource(R.string.data_summary)
+                            "help" -> stringResource(R.string.help_summary)
+                            else -> stringResource(R.string.about_summary)
+                        },
+                    onClick = target.second,
                     modifier =
                         Modifier
                             .padding(horizontal = Tokens.ScreenMargin)
-                            .padding(top = Tokens.RowGap),
+                            .padding(top = if (index == 0) 0.dp else Tokens.RowGap),
                 )
             }
         }
