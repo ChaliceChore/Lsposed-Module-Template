@@ -59,6 +59,7 @@ import io.github.chalicechore.moduletemplate.ui.component.TryOutCard
 import io.github.chalicechore.moduletemplate.ui.component.centeredContentWidth
 import io.github.chalicechore.moduletemplate.ui.theme.BrandSeed
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
+import androidx.compose.foundation.layout.imePadding
 
 private val Weights = listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold)
 private val WeightNames = listOf(R.string.demo_weight_regular, R.string.demo_weight_medium, R.string.demo_weight_semibold, R.string.demo_weight_bold)
@@ -91,6 +92,7 @@ fun ComponentsDemoScreen(onBack: () -> Unit) {
         Column(
             Modifier
                 .centeredContentWidth()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(contentPadding),
         ) {

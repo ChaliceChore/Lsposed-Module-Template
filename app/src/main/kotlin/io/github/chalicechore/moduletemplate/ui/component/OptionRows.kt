@@ -57,6 +57,18 @@ import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+
+private const val KEYBOARD_SETTLE_MILLIS = 250L
 
 /**
  * #8 A "PREVIEW" frame for drawing the target's UI at its real size. The module draws [content];
@@ -66,11 +78,13 @@ import androidx.compose.foundation.layout.Spacer
 @Composable
 fun PreviewBlock(
     modifier: Modifier = Modifier,
+    // Same as the rows, so the preview reads as part of the group around it.
+    color: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
         shape = RoundedCornerShape(Tokens.OuterRowCorner),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = color,
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
@@ -280,6 +294,7 @@ fun DurationRow(
  * #16 A card with an input and a live result, so users can try what the module does without
  * leaving the app. The module supplies [transform].
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TryOutCard(
     title: String,
@@ -289,10 +304,20 @@ fun TryOutCard(
     modifier: Modifier = Modifier,
 ) {
     var input by rememberSaveable { mutableStateOf(initial) }
+    var focused by remember { mutableStateOf(false) }
+    // Keep the whole card (field and result) above the keyboard while typing.
+    val bringIntoView = remember { BringIntoViewRequester() }
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(focused, imeVisible, input) {
+        if (focused) {
+            delay(KEYBOARD_SETTLE_MILLIS)
+            bringIntoView.bringIntoView()
+        }
+    }
     Surface(
         shape = RoundedCornerShape(Tokens.OuterRowCorner),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().bringIntoViewRequester(bringIntoView),
     ) {
         Column(Modifier.padding(Tokens.RowPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
@@ -301,7 +326,7 @@ fun TryOutCard(
                 onValueChange = { input = it },
                 label = { Text(inputLabel) },
                 textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
             )
             Text(
                 transform(input),
