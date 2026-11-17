@@ -26,6 +26,8 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.BasicAlertDialog
@@ -75,7 +77,6 @@ private fun loadApps(context: Context): List<PickableApp> {
  * #14 Pick one app: a search field, app icons with labels, "Installed" and "System" groups, and
  * the current choice pinned at the top.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppPickerDialog(
     title: String,
@@ -83,8 +84,63 @@ fun AppPickerDialog(
     onPick: (PickableApp) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val pinned = remember { setOfNotNull(selected) }
+    AppPickerFrame(
+        title = title,
+        pinned = pinned,
+        onDismiss = onDismiss,
+        row = { app -> AppRow(app, checked = app.packageName == selected, multi = false) { onPick(app) } },
+        confirm = null,
+    )
+}
+
+/**
+ * #14b Pick several apps with checkboxes. Apps checked when the dialog opens are listed first;
+ * the order then stays put while boxes are ticked, so rows never jump under the finger.
+ */
+@Composable
+fun AppMultiPickerDialog(
+    title: String,
+    selected: Set<String>,
+    onDone: (List<PickableApp>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val pinned = remember { selected }
+    var checked by rememberSaveable { mutableStateOf(ArrayList(selected)) }
+    var all by remember { mutableStateOf<List<PickableApp>>(emptyList()) }
+    AppPickerFrame(
+        title = title,
+        pinned = pinned,
+        onDismiss = onDismiss,
+        onLoaded = { all = it },
+        row = { app ->
+            val on = app.packageName in checked
+            AppRow(app, checked = on, multi = true) {
+                checked = ArrayList(if (on) checked - app.packageName else checked + app.packageName)
+            }
+        },
+        confirm = {
+            TextButton(onClick = { onDone(all.filter { it.packageName in checked }) }) {
+                Text(stringResource(R.string.dialog_done))
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun AppPickerFrame(
+    title: String,
+    pinned: Set<String>,
+    onDismiss: () -> Unit,
+    row: @Composable (PickableApp) -> Unit,
+    confirm: (@Composable () -> Unit)?,
+    onLoaded: (List<PickableApp>) -> Unit = {},
+) {
     val context = LocalContext.current
-    val apps by produceState<List<PickableApp>?>(null) { value = withContext(Dispatchers.IO) { loadApps(context) } }
+    val apps by produceState<List<PickableApp>?>(null) {
+        value = withContext(Dispatchers.IO) { loadApps(context) }.also(onLoaded)
+    }
     var query by rememberSaveable { mutableStateOf("") }
     BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
@@ -108,9 +164,9 @@ fun AppPickerDialog(
                             remember(list, query) {
                                 list.filter { query.isBlank() || it.label.contains(query, true) || it.packageName.contains(query, true) }
                             }
-                        val current = filtered.filter { it.packageName == selected }
-                        val user = filtered.filter { !it.system && it.packageName != selected }
-                        val system = filtered.filter { it.system && it.packageName != selected }
+                        val current = filtered.filter { it.packageName in pinned }
+                        val user = filtered.filter { !it.system && it.packageName !in pinned }
+                        val system = filtered.filter { it.system && it.packageName !in pinned }
                         LazyColumn(Modifier.fillMaxSize()) {
                             fun group(
                                 header: Int,
@@ -118,9 +174,7 @@ fun AppPickerDialog(
                             ) {
                                 if (items.isEmpty()) return
                                 item(key = "h$header") { PickerHeader(stringResource(header)) }
-                                items(items, key = { it.packageName }) { app ->
-                                    AppRow(app, app.packageName == selected) { onPick(app) }
-                                }
+                                items(items, key = { it.packageName }) { app -> row(app) }
                             }
                             group(R.string.app_picker_selected, current)
                             group(R.string.app_picker_installed, user)
@@ -133,6 +187,7 @@ fun AppPickerDialog(
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
+                    confirm?.invoke()
                 }
             }
         }
@@ -152,14 +207,21 @@ private fun PickerHeader(text: String) {
 @Composable
 private fun AppRow(
     app: PickableApp,
-    selected: Boolean,
+    checked: Boolean,
+    multi: Boolean,
     onClick: () -> Unit,
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .selectable(selected, role = Role.RadioButton, onClick = onClick)
+                .then(
+                    if (multi) {
+                        Modifier.toggleable(checked, role = Role.Checkbox) { onClick() }
+                    } else {
+                        Modifier.selectable(checked, role = Role.RadioButton, onClick = onClick)
+                    },
+                )
                 .heightIn(min = 56.dp)
                 .padding(horizontal = 24.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -170,6 +232,6 @@ private fun AppRow(
             Text(app.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
             Text(app.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         }
-        RadioButton(selected = selected, onClick = null)
+        if (multi) Checkbox(checked = checked, onCheckedChange = null) else RadioButton(selected = checked, onClick = null)
     }
 }

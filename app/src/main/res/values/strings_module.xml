@@ -36,6 +36,12 @@
     <string name="demo_color_title">Button color</string>
     <string name="demo_app_title">Target app</string>
     <string name="demo_app_none">None chosen</string>
+    <string name="demo_apps_title">Choose apps</string>
+    <string name="demo_apps_none">None chosen</string>
+    <plurals name="demo_apps_summary">
+        <item quantity="one">%1$d app: %2$s</item>
+        <item quantity="other">%1$d apps: %2$s</item>
+    </plurals>
     <string name="demo_try_out">Try it out</string>
     <string name="demo_try_out_title">Reverse text</string>
     <string name="demo_try_out_label">Type something</string>

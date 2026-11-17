@@ -50,6 +50,13 @@ import androidx.compose.ui.unit.dp
 import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
 import kotlin.math.roundToInt
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.foundation.layout.Spacer
 
 /**
  * #8 A "PREVIEW" frame for drawing the target's UI at its real size. The module draws [content];
@@ -181,6 +188,7 @@ fun <T> ChipSelectorRow(
  *
  * @param value seconds, or null for the default.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DurationRow(
     shape: Shape,
@@ -208,43 +216,64 @@ fun DurationRow(
     if (!open) return
     var picked by rememberSaveable { mutableFloatStateOf((value ?: default).toFloat()) }
     val seconds = picked.roundToInt()
-    AlertDialog(
-        onDismissRequest = { open = false },
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    pluralStringResource(R.plurals.duration_seconds, seconds, seconds),
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                Slider(
-                    value = picked,
-                    onValueChange = { picked = it },
-                    valueRange = range.first.toFloat()..range.last.toFloat(),
-                    steps = range.last - range.first - 1,
-                )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("${range.first} s", style = MaterialTheme.typography.labelMedium)
-                    Text("${range.last} s", style = MaterialTheme.typography.labelMedium)
+    fun nudge(by: Int) {
+        picked = (seconds + by).coerceIn(range.first, range.last).toFloat()
+    }
+    BasicAlertDialog(onDismissRequest = { open = false }) {
+        Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+            Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 16.dp)) {
+                Text(title, style = MaterialTheme.typography.headlineSmall)
+                // Big value, with a "Default" tag when it matches the default.
+                Column(
+                    Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        pluralStringResource(R.plurals.duration_seconds, seconds, seconds),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        stringResource(R.string.duration_is_default),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.alpha(if (seconds == default) 1f else 0f),
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalIconButton(onClick = { nudge(-1) }, enabled = seconds > range.first) {
+                        Icon(Icons.Rounded.Remove, contentDescription = stringResource(R.string.duration_less))
+                    }
+                    Slider(
+                        value = picked,
+                        onValueChange = { picked = it },
+                        valueRange = range.first.toFloat()..range.last.toFloat(),
+                        steps = range.last - range.first - 1,
+                        modifier = Modifier.weight(1f),
+                    )
+                    FilledTonalIconButton(onClick = { nudge(1) }, enabled = seconds < range.last) {
+                        Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.duration_more))
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 56.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("${range.first} s", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${range.last} s", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // Default only moves the slider; OK saves.
+                Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { picked = default.toFloat() }, enabled = seconds != default) {
+                        Text(stringResource(R.string.duration_reset))
+                    }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { open = false }) { Text(stringResource(R.string.dialog_cancel)) }
+                    TextButton(onClick = {
+                        onChange(if (seconds == default) null else seconds)
+                        open = false
+                    }) { Text(stringResource(R.string.dialog_ok)) }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                onChange(seconds)
-                open = false
-            }) { Text(stringResource(R.string.dialog_ok)) }
-        },
-        dismissButton = {
-            Row {
-                TextButton(onClick = {
-                    onChange(null)
-                    open = false
-                }) { Text(stringResource(R.string.duration_reset)) }
-                TextButton(onClick = { open = false }) { Text(stringResource(R.string.dialog_cancel)) }
-            }
-        },
-    )
+        }
+    }
 }
 
 /**

@@ -48,9 +48,11 @@
         <item quantity="other">%1$d seconds</item>
     </plurals>
     <string name="duration_reset">Default</string>
+    <string name="duration_is_default">Default</string>
+    <string name="duration_less">Less</string>
+    <string name="duration_more">More</string>
     <string name="color_mode_swatches">Swatches</string>
     <string name="color_mode_wheel">Wheel</string>
-    <string name="color_mode_area">Area</string>
     <string name="color_brightness">Brightness</string>
     <string name="color_hex">Hex</string>
     <string name="app_picker_search">Search apps</string>
@@ -60,6 +62,7 @@
     <string name="app_picker_none">No apps match</string>
     <string name="section_options">Options</string>
     <string name="dialog_ok">OK</string>
+    <string name="dialog_done">Done</string>
     <string name="dialog_cancel">Cancel</string>
 
     <!-- Apply sheet -->

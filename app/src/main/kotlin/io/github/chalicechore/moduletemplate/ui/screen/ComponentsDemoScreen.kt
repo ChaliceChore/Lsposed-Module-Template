@@ -39,6 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.ui.component.AppPickerDialog
+import io.github.chalicechore.moduletemplate.ui.component.AppMultiPickerDialog
+import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.ui.res.pluralStringResource
 import io.github.chalicechore.moduletemplate.ui.component.ChipSelectorRow
 import io.github.chalicechore.moduletemplate.ui.component.ColorPickerDialog
 import io.github.chalicechore.moduletemplate.ui.component.DetailScaffold
@@ -78,6 +81,9 @@ fun ComponentsDemoScreen(onBack: () -> Unit) {
     var sheet by rememberSaveable { mutableStateOf(false) }
     var colorDialog by rememberSaveable { mutableStateOf(false) }
     var appDialog by rememberSaveable { mutableStateOf(false) }
+    var apps by rememberSaveable { mutableStateOf(ArrayList<String>()) }
+    var appsLabels by rememberSaveable { mutableStateOf(ArrayList<String>()) }
+    var appsDialog by rememberSaveable { mutableStateOf(false) }
     val preview: @Composable () -> Unit = {
         DemoPreview(Color(color), Weights[weight], custom, rounded)
     }
@@ -163,6 +169,24 @@ fun ComponentsDemoScreen(onBack: () -> Unit) {
                                 trailing = RowTrailing.None,
                             )
                         },
+                        { shape ->
+                            NavigationRow(
+                                shape = shape,
+                                icon = Icons.Outlined.Checklist,
+                                title = stringResource(R.string.demo_apps_title),
+                                summary =
+                                    if (apps.isEmpty()) {
+                                        stringResource(R.string.demo_apps_none)
+                                    } else {
+                                        val names =
+                                            appsLabels.take(2).joinToString(", ") +
+                                                if (appsLabels.size > 2) ", +${appsLabels.size - 2}" else ""
+                                        pluralStringResource(R.plurals.demo_apps_summary, apps.size, apps.size, names)
+                                    },
+                                onClick = { appsDialog = true },
+                                trailing = RowTrailing.None,
+                            )
+                        },
                     ),
             )
             SectionHeader(stringResource(R.string.demo_try_out))
@@ -209,7 +233,7 @@ fun ComponentsDemoScreen(onBack: () -> Unit) {
                         },
                     ) +
                         // Extra rows so the sheet has something to scroll under the pinned preview.
-                        (1..6).map { n ->
+                        (1..20).map { n ->
                             { shape: Shape ->
                                 NavigationRow(
                                     shape = shape,
@@ -234,6 +258,18 @@ fun ComponentsDemoScreen(onBack: () -> Unit) {
                 colorDialog = false
             },
             onDismiss = { colorDialog = false },
+        )
+    }
+    if (appsDialog) {
+        AppMultiPickerDialog(
+            title = stringResource(R.string.demo_apps_title),
+            selected = apps.toSet(),
+            onDone = { picked ->
+                apps = ArrayList(picked.map { it.packageName })
+                appsLabels = ArrayList(picked.map { it.label })
+                appsDialog = false
+            },
+            onDismiss = { appsDialog = false },
         )
     }
     if (appDialog) {

@@ -3,6 +3,13 @@
 package io.github.chalicechore.moduletemplate.ui.component
 
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -98,6 +105,8 @@ fun OptionsSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
+        val scroll = rememberScrollState()
+        val sheetColor = MaterialTheme.colorScheme.surfaceContainerLow
         // Sticky header: title and the group switch in one line, outside the scrolling part.
         Row(
             modifier =
@@ -113,14 +122,26 @@ fun OptionsSheet(
         if (pinned != null) {
             Column(Modifier.padding(horizontal = Tokens.ScreenMargin, vertical = 8.dp)) { pinned() }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Column(
-            modifier =
+        // The header's lower edge: a soft shadow that fades in once the options scroll under it.
+        val edge by animateFloatAsState(if (scroll.canScrollBackward) 1f else 0f, label = "sheetEdge")
+        Box(Modifier.weight(1f, fill = false)) {
+            Column(
+                modifier =
+                    Modifier
+                        .background(sheetColor)
+                        .verticalScroll(scroll)
+                        .navigationBarsPadding()
+                        .padding(top = 8.dp, bottom = Tokens.ScreenMargin)
+                        .alpha(if (checked) 1f else 0.38f),
+            ) { options(checked) }
+            Box(
                 Modifier
-                    .verticalScroll(rememberScrollState())
-                    .navigationBarsPadding()
-                    .padding(vertical = Tokens.ScreenMargin)
-                    .alpha(if (checked) 1f else 0.38f),
-        ) { options(checked) }
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .graphicsLayer { alpha = edge }
+                    .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.14f), Color.Transparent))),
+            )
+        }
     }
 }

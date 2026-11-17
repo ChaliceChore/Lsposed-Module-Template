@@ -70,13 +70,11 @@ private enum class PickerMode(
 ) {
     SWATCHES(R.string.color_mode_swatches),
     WHEEL(R.string.color_mode_wheel),
-    AREA(R.string.color_mode_area),
 }
 
 /**
- * #11 Colour picker with three modes that share one value: a swatch grid, a hue/saturation
- * wheel with a brightness slider, and a saturation/brightness area with a hue slider. A hex
- * field and a preview sit under all three.
+ * #11 Colour picker with two modes that share one value: a swatch grid, and a hue/saturation
+ * wheel with a brightness slider. A hex field and a preview sit under both.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,10 +128,6 @@ fun ColorPickerDialog(
                     PickerMode.WHEEL -> {
                         HueSatWheel(hue, sat, value) { h, s -> setHsv(h = h, s = s) }
                         LabeledSlider(stringResource(R.string.color_brightness), value, 0f..1f) { setHsv(v = it) }
-                    }
-                    PickerMode.AREA -> {
-                        SatValueArea(hue, sat, value) { s, v -> setHsv(s = s, v = v) }
-                        HueSlider(hue) { setHsv(h = it) }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -232,50 +226,6 @@ private fun HueSatWheel(
         val a = Math.toRadians(hue.toDouble())
         val p = center + Offset((cos(a) * r * sat).toFloat(), (sin(a) * r * sat).toFloat())
         drawCircle(Color.White, 10.dp.toPx(), p, style = Stroke(3.dp.toPx()))
-    }
-}
-
-/** Saturation left to right, brightness bottom to top, for one hue. */
-@Composable
-private fun SatValueArea(
-    hue: Float,
-    sat: Float,
-    value: Float,
-    onChange: (Float, Float) -> Unit,
-) {
-    Canvas(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures { onChange((it.x / size.width).coerceIn(0f, 1f), 1f - (it.y / size.height).coerceIn(0f, 1f)) }
-                }.pointerInput(Unit) {
-                    detectDragGestures { change, _ ->
-                        val p = change.position
-                        onChange((p.x / size.width).coerceIn(0f, 1f), 1f - (p.y / size.height).coerceIn(0f, 1f))
-                    }
-                },
-    ) {
-        drawRect(Brush.horizontalGradient(listOf(Color.White, Color.hsv(hue, 1f, 1f))))
-        drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
-        drawCircle(Color.White, 10.dp.toPx(), Offset(sat * size.width, (1f - value) * size.height), style = Stroke(3.dp.toPx()))
-    }
-}
-
-@Composable
-private fun HueSlider(
-    hue: Float,
-    onChange: (Float) -> Unit,
-) {
-    Column {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(12.dp)
-                .background(Brush.horizontalGradient((0..6).map { Color.hsv(it * 60f % 360f, 1f, 1f) }), RoundedCornerShape(6.dp)),
-        )
-        Slider(value = hue, onValueChange = onChange, valueRange = 0f..359f)
     }
 }
 
