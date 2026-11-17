@@ -291,3 +291,101 @@ for the module folders.
   below that.
 - **AppCompat:** adds about 300 KB to release builds after R8.
 - **Translation quality:** these are machine translations, so expect corrections through Weblate.
+
+---
+
+## Phase I: Testing feedback, batch 1 (2026-11-17)
+
+Your feedback numbers are in brackets. One commit per step; build with the low-memory script
+after each.
+
+### I1. Home header and status card [1, 2, 3, 4, 5, 15]
+- **Title icon [1]:** `TitleWithIcon` draws the bare foreground glyph (`ic_launcher_foreground`
+  as a vector, no adaptive-icon circle), tinted `colorScheme.primary`. That is the wallpaper
+  colour with Dynamic color on, otherwise the teal seed. Slightly smaller than the text height.
+- **Not active badge [2]:** `Burst` → `MaterialShapes.Sunny` (short, rounded points). The cross
+  becomes a heavier glyph (`Icons.Rounded.Close` drawn with a thicker stroke, or a custom 3 dp
+  stroke vector). Light-mode colours go from `errorContainer` (pale on pale) to a stronger pair:
+  `error` fill with `onError` cross, softened to about 85 % so it isn't harsh. Dark mode keeps
+  the container pair, which already reads well. The other badges get the same contrast check.
+- **Versions line [3]:** a small pill (`surfaceContainer`, full-round corners, 8 dp vertical
+  padding) holding "Target · Module" with a small icon, centred horizontally under the card.
+  ("Central align vertically" is read as: equal space above and below between the card and
+  the next section.)
+- **Always on [4]:** new `ModuleConfig.ALWAYS_ON` flag (default true in the template). When
+  false the header and rows are skipped. The KDoc and README mark the section as optional.
+- **Footnote [5]:** remove the "Changes take effect after … restarts." line and its string.
+- **Debug status preview [15]:** debug builds only (`BuildConfig.DEBUG`). Long-press the status
+  side of the card to step through Active → Pending → Warning → Off → Not active → Busy →
+  live. A small "Preview" tag shows while overriding. Nothing is saved. Release builds
+  compile it out.
+
+### I2. Apply sheet [8]
+- **Handle (i, ii):** a custom drag handle with no ripple (`indication = null`). Tapping it
+  toggles between **peek** (summary and buttons) and **expanded** (full change list). If the
+  sheet is already expanded, a tap returns it to peek.
+- **Resists collapsing (iii):** likely cause: the inner `verticalScroll` takes the drag while
+  the list sits at its top. Fix: put the list's scroll inside the sheet's nested-scroll
+  connection, and only let the inner list take a drag when it can still scroll that way.
+  Also re-check `confirmValueChange` so it never blocks PartiallyExpanded. (Can't reproduce it
+  reliably, so this is a best-effort fix.)
+- **Buttons (iv):** medium → small-medium height (`ButtonDefaults.MinHeight` + 8 dp) and
+  tighter content padding.
+- **Separator (v):** replace the full-width divider with an inset, rounded 1 dp line in
+  `outlineVariant`, shown only while the list is expanded.
+- **Background (vi):** sheet container goes to `surfaceContainerHigh` with tonal elevation and
+  a soft top shadow, so it separates from the app's `surface`.
+- **Gap (vii):** 8 dp → 16 dp between the value and the ✕ button.
+- **Animation (viii):** rows leave with `animateItem` (fade and shrink) after the swipe ends.
+  The sheet hides with the expressive motion spec instead of snapping.
+- **Bug (ix):** the swipe state is remembered per key and survives while the row is
+  gone (the sheet keeps the last content while hiding). So a redone change comes back already
+  "dismissed", and only the background (two undo arrows) shows. Fix: key rows by key plus a
+  revision counter, and reset the state to Settled when a row re-enters.
+
+### I3. Options sheet and demo [6, 7, 12, 13, 14]
+- **Sticky header border [6]:** no fixed divider. A hairline plus a slight tonal shift fades
+  in only once the options are scrolled. The header has the same background as the sheet.
+- **Glitchy scrolling [7]:** the options column gets `weight(1f, fill = false)` so the sheet
+  height is bounded. The nested scroll is set up so the list scrolls before the sheet drags
+  down. 20 filler rows instead of 6.
+- **Show for dialog [12]:** a bigger value display ("4 s", with the default marked), a slider
+  with tick labels, and −/+ buttons for 1-step nudges. "Default" sets the slider to the
+  default and keeps the dialog open; only OK commits. Button order: Default (left), Cancel,
+  OK.
+- **Colour picker [13]:** remove the Area tab and `SatValueArea`. Two segments are left:
+  Swatches and Wheel.
+- **Choose apps [14]:** new `AppMultiPickerDialog(title, selected: Set<String>, onDone, onDismiss)`
+  with checkboxes, a search field, and Done/Cancel buttons. The order is frozen when the
+  dialog opens: checked apps first, then Installed, then System. Checking or unchecking only
+  flips the box, and the list doesn't re-sort until the dialog is opened again. New demo row
+  "Choose apps", with the summary "3 apps: A, B, +1".
+
+### I4. Reset settings [11]
+- **Per section:** a ⋮ menu in each category screen's top bar with "Reset to defaults"
+  (disabled when nothing differs from the defaults).
+- **Global:** a "Reset all settings" row in About → Data (see I5), next to Back up and Restore.
+  It offers the same Settings/Appearance section checkboxes as Restore.
+- **Both:** a confirm dialog that lists what changes (reusing the restore diff). Reset values
+  become **pending** changes, like Restore, so the apply sheet can still undo them.
+  View model: `resetCategory(category)` and `resetAll(sections)`.
+- **Optional:** `ModuleConfig.RESET` flag (default on).
+
+### I5. About restructure [10]
+New order, with a header for each group:
+1. **Identity card** (unchanged).
+2. **Updates:** Version (update check), What's new, Changelog.
+3. **Help:** Troubleshooting rows (Feature health, Debug logging, Report a problem).
+4. **Data:** Back up, Restore, Reset all settings.
+5. **Project:** Source code, Request a feature, Translate.
+6. **Author:** GitHub profile, More modules.
+7. **Legal:** Open-source licences.
+
+Optional groups (Help and Data) drop out with their flags.
+
+### I6. Language dialog [9]
+- System default at the top, then a divider.
+- **Available:** English, plus any other translated languages, sorted by their own names.
+- **Not translated yet:** a subheader, then the greyed-out languages sorted by their own
+  names. Each row shows the English name as a subtitle ("Deutsch · German"), so they're easy to
+  find.
