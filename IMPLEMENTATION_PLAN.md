@@ -389,6 +389,7 @@ Optional groups (Help and Data) drop out with their flags.
   find.
 
 ---
+
 ## Phase J: Testing feedback, batch 2 (2026-11-17)
 
 Your feedback numbers are in brackets. One commit per step, built with the low-memory script.
