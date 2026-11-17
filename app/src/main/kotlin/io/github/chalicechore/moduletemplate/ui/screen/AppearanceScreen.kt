@@ -78,6 +78,11 @@ import io.github.chalicechore.moduletemplate.ui.component.rememberLauncherIconVi
 import io.github.chalicechore.moduletemplate.ui.component.setLauncherIconVisible
 import io.github.chalicechore.moduletemplate.ui.component.shapeForPosition
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.runtime.remember
+import java.text.Collator
+import java.util.Locale
 
 @Composable
 fun AppearanceScreen(
@@ -289,7 +294,11 @@ private fun <T> SegmentedChoiceRow(
     }
 }
 
-/** "Language": System default first, then each language written in its own script. */
+/**
+ * "Language": System default, then the translated languages, then a "Not translated yet" group
+ * (greyed out). Each group is sorted by the languages' own names, and each row also shows the
+ * name in the current language ("Deutsch · German") so it is easy to find.
+ */
 @Composable
 private fun LanguageRow(shape: Shape) {
     var open by rememberSaveable { mutableStateOf(false) }
@@ -305,45 +314,61 @@ private fun LanguageRow(shape: Shape) {
     )
     if (!open) return
     val haptics = LocalHapticFeedback.current
-    val options = listOf<String?>(null) + AppLanguages
+    val uiLocale = LocalConfiguration.current.locales[0]
+    val collator = remember(uiLocale) { Collator.getInstance(uiLocale) }
+    val (translated, untranslated) =
+        remember(collator) {
+            AppLanguages.sortedWith(compareBy(collator) { languageName(it) }).partition { it in TranslatedLanguages }
+        }
+    @Composable
+    fun option(tag: String?) {
+        val available = tag == null || tag in TranslatedLanguages
+        val own = tag?.let(::languageName) ?: systemDefault
+        val local = tag?.let { Locale.forLanguageTag(it).getDisplayName(uiLocale) }?.takeIf { it != own }
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .alpha(if (available) 1f else 0.38f)
+                    .selectable(
+                        selected = tag == current,
+                        enabled = available,
+                        role = Role.RadioButton,
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            open = false
+                            if (tag != current) setAppLanguage(tag)
+                        },
+                    ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(selected = tag == current, onClick = null, enabled = available)
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text(own, style = MaterialTheme.typography.bodyLarge)
+                if (local != null) {
+                    Text(local, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
     AlertDialog(
         onDismissRequest = { open = false },
         title = { Text(stringResource(R.string.language_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()).selectableGroup()) {
-                options.forEach { tag ->
-                    val available = tag == null || tag in TranslatedLanguages
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 48.dp)
-                                .alpha(if (available) 1f else 0.38f)
-                                .selectable(
-                                    selected = tag == current,
-                                    enabled = available,
-                                    role = Role.RadioButton,
-                                    onClick = {
-                                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                        open = false
-                                        if (tag != current) setAppLanguage(tag)
-                                    },
-                                ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = tag == current, onClick = null, enabled = available)
-                        Spacer(Modifier.width(16.dp))
-                        Column {
-                            Text(tag?.let(::languageName) ?: systemDefault, style = MaterialTheme.typography.bodyLarge)
-                            if (!available) {
-                                Text(
-                                    stringResource(R.string.language_not_translated),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
+                option(null)
+                HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                translated.forEach { option(it) }
+                if (untranslated.isNotEmpty()) {
+                    Text(
+                        stringResource(R.string.language_not_translated),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                    )
+                    untranslated.forEach { option(it) }
                 }
             }
         },
