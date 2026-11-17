@@ -41,6 +41,9 @@ object ModuleConfig {
     /** "Back up and restore" in About. */
     const val BACKUP_RESTORE = true
 
+    /** "Reset to defaults" in each category's menu, and "Reset all settings" in About. */
+    const val RESET = true
+
     /**
      * The "Components" demo category that shows every optional component. Delete it (and
      * FeatureCategory.COMPONENTS) in a real module.

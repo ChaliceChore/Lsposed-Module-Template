@@ -75,6 +75,22 @@ data class FeatureSettings(
             (if (choice != other.choice) 1 else 0) +
             (if (moduleEnabled != other.moduleEnabled) 1 else 0)
 
+    /**
+     * These settings with every switch of [category] back at its default, and the choice too
+     * when [includeChoice] (the choice's category). The module switch is left alone.
+     */
+    fun resetCategory(
+        category: FeatureCategory,
+        includeChoice: Boolean,
+    ): FeatureSettings {
+        val defaults = FeatureSettings()
+        val inCategory = FeatureSwitch.entries.filter { it.category == category }.toSet()
+        return copy(
+            switches = (switches - inCategory) + (defaults.switches intersect inCategory),
+            choice = if (includeChoice) defaults.choice else choice,
+        )
+    }
+
     /** True when applying the difference from [other] needs the target restarted. */
     fun needsRestart(other: FeatureSettings): Boolean =
         moduleEnabled != other.moduleEnabled ||

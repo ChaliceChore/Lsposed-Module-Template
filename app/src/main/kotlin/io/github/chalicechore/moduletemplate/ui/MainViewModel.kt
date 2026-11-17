@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import io.github.chalicechore.moduletemplate.prefs.FeatureCategory
 
 enum class ApplyFailure {
     NotSent,
@@ -225,6 +226,14 @@ class MainViewModel(
     fun restoreSettings(settings: FeatureSettings) {
         clearFailure()
         viewModelScope.launch(writer) { preferences.save(settings) }
+    }
+
+    /** One category back to its defaults, as pending changes (the apply sheet can undo them). */
+    fun resetCategory(category: FeatureCategory) {
+        clearFailure()
+        viewModelScope.launch(writer) {
+            preferences.save(preferences.desiredSettings().resetCategory(category, category == ChoiceCategory))
+        }
     }
 
     fun restoreAppearance(appearance: Appearance) {

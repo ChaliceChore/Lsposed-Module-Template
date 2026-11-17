@@ -64,6 +64,13 @@ import io.github.chalicechore.moduletemplate.ui.labelRes
 import io.github.chalicechore.moduletemplate.ui.summaryRes
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
 import io.github.chalicechore.moduletemplate.ui.titleRes
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.Arrangement
 
 /** One feature category: its switches, plus the single-choice option where it belongs. */
 @Composable
@@ -75,13 +82,40 @@ fun CategoryScreen(
     onBack: () -> Unit,
     failed: Map<FeatureSwitch, FeatureHealth.Failed> = emptyMap(),
     highlight: String? = null,
+    onReset: (() -> Unit)? = null,
 ) {
     val flash = rememberHighlightFlash(highlight)
     var reason by rememberSaveable { mutableStateOf<String?>(null) }
     val target = stringResource(R.string.target_label)
     var showChoiceDialog by rememberSaveable { mutableStateOf(false) }
     val switches = remember(category) { FeatureSwitch.entries.filter { it.category == category } }
-    DetailScaffold(title = stringResource(category.titleRes), onBack = onBack) { contentPadding ->
+    val resetTo = remember(settings, category) { settings.resetCategory(category, category == ChoiceCategory) }
+    var menu by remember { mutableStateOf(false) }
+    var confirmReset by rememberSaveable { mutableStateOf(false) }
+    DetailScaffold(
+        title = stringResource(category.titleRes),
+        onBack = onBack,
+        actions = {
+            if (onReset != null) {
+                Box {
+                    IconButton(onClick = { menu = true }) {
+                        Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.more_options))
+                    }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.reset_category)) },
+                            leadingIcon = { Icon(Icons.Outlined.SettingsBackupRestore, null) },
+                            enabled = resetTo != settings,
+                            onClick = {
+                                menu = false
+                                confirmReset = true
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    ) { contentPadding ->
         Column(
             modifier =
                 Modifier
@@ -131,6 +165,39 @@ fun CategoryScreen(
                 )
             }
         }
+    }
+    if (confirmReset && onReset != null) {
+        val on = stringResource(R.string.pending_change_on)
+        val off = stringResource(R.string.pending_change_off)
+        val lines =
+            settings.differingSwitches(resetTo).sorted().map {
+                "${stringResource(it.titleRes)}: ${if (resetTo.isOn(it)) on else off}"
+            } +
+                listOfNotNull(
+                    if (resetTo.choice != settings.choice) {
+                        "${stringResource(R.string.option_choice_title)}: ${stringResource(resetTo.choice.labelRes)}"
+                    } else {
+                        null
+                    },
+                )
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            icon = { Icon(Icons.Outlined.SettingsBackupRestore, null) },
+            title = { Text(stringResource(R.string.reset_category_title, stringResource(category.titleRes))) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.reset_category_body))
+                    lines.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmReset = false
+                    onReset()
+                }) { Text(stringResource(R.string.reset_confirm)) }
+            },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text(stringResource(R.string.dialog_cancel)) } },
+        )
     }
     reason?.let { text ->
         AlertDialog(

@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
+import androidx.compose.foundation.layout.RowScope
 
 fun Modifier.centeredContentWidth(): Modifier =
     fillMaxSize().wrapContentWidth().widthIn(max = Tokens.ContentMaxWidth).fillMaxWidth()
@@ -64,6 +65,7 @@ fun BackButton(onBack: () -> Unit) {
 fun DetailScaffold(
     title: String,
     onBack: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (contentPadding: PaddingValues) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -75,6 +77,7 @@ fun DetailScaffold(
             MediumFlexibleTopAppBar(
                 title = { Text(title) },
                 navigationIcon = { BackButton(onBack) },
+                actions = actions,
                 scrollBehavior = scrollBehavior,
             )
         },

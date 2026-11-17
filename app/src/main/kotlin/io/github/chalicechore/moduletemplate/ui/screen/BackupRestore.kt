@@ -58,6 +58,8 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import io.github.chalicechore.moduletemplate.ModuleConfig
 
 /** A backup's parts. Each can be saved or restored on its own. */
 enum class BackupSection(
@@ -167,15 +169,20 @@ private fun restoreDiff(
 }
 
 /**
- * About's "Back up and restore" rows (ModuleConfig.BACKUP_RESTORE). First version of the
- * dialogs: the design will be polished later.
+ * About's "Data" group: Back up and Restore (ModuleConfig.BACKUP_RESTORE) and Reset all
+ * settings (ModuleConfig.RESET). Restore and reset both turn module settings into pending
+ * changes, so they go through the apply sheet and can be undone there.
  */
 @Composable
-fun BackupRestoreGroup(
+fun DataGroup(
     state: UiState.Ready,
     onRestoreSettings: (FeatureSettings) -> Unit,
     onRestoreAppearance: (Appearance) -> Unit,
+    backupRestore: Boolean = ModuleConfig.BACKUP_RESTORE,
+    reset: Boolean = ModuleConfig.RESET,
 ) {
+    if (!backupRestore && !reset) return
+    var resetting by remember { mutableStateOf<Backup?>(null) }
     val context = LocalContext.current
     var backupSections by remember { mutableStateOf<Set<BackupSection>?>(null) }
     var pendingSave by remember { mutableStateOf<Set<BackupSection>>(emptySet()) }
@@ -195,11 +202,12 @@ fun BackupRestoreGroup(
                     null
                 }
         }
-    SectionHeader(stringResource(R.string.section_backup))
+    SectionHeader(stringResource(R.string.section_data))
     RowGroup(
         rows =
-            listOf<@Composable (Shape) -> Unit>(
-                { shape ->
+            buildList<@Composable (Shape) -> Unit> {
+                if (backupRestore) {
+                    add { shape ->
                     NavigationRow(
                         shape = shape,
                         icon = Icons.Outlined.Backup,
@@ -208,8 +216,8 @@ fun BackupRestoreGroup(
                         onClick = { backupSections = BackupSection.entries.toSet() },
                         trailing = RowTrailing.None,
                     )
-                },
-                { shape ->
+                    }
+                    add { shape ->
                     NavigationRow(
                         shape = shape,
                         icon = Icons.Outlined.Restore,
@@ -218,9 +226,41 @@ fun BackupRestoreGroup(
                         onClick = { open.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
                         trailing = RowTrailing.None,
                     )
-                },
-            ),
+                    }
+                }
+                if (reset) {
+                    add { shape ->
+                        NavigationRow(
+                            shape = shape,
+                            icon = Icons.Outlined.SettingsBackupRestore,
+                            title = stringResource(R.string.reset_all_title),
+                            summary = stringResource(R.string.reset_all_summary),
+                            // Defaults, keeping the module switch as it is.
+                            onClick = { resetting = Backup(FeatureSettings(moduleEnabled = state.desired.moduleEnabled), Appearance()) },
+                            trailing = RowTrailing.None,
+                        )
+                    }
+                }
+            },
     )
+    resetting?.let { defaults ->
+        var selected by rememberSaveable { mutableStateOf(setOf(BackupSection.SETTINGS)) }
+        SectionsDialog(
+            title = stringResource(R.string.reset_all_title),
+            note = stringResource(R.string.reset_all_note),
+            available = BackupSection.entries,
+            selected = selected,
+            onSelectedChange = { selected = it },
+            diff = restoreDiff(state, defaults, selected),
+            confirm = stringResource(R.string.reset_confirm),
+            onConfirm = {
+                if (BackupSection.SETTINGS in selected) defaults.settings?.let(onRestoreSettings)
+                if (BackupSection.APPEARANCE in selected) defaults.appearance?.let(onRestoreAppearance)
+                resetting = null
+            },
+            onDismiss = { resetting = null },
+        )
+    }
     backupSections?.let { selected ->
         SectionsDialog(
             title = stringResource(R.string.backup_title),

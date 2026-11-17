@@ -50,7 +50,7 @@ import io.github.chalicechore.moduletemplate.ui.component.ApplySheetContent
 import io.github.chalicechore.moduletemplate.ui.component.ApplySheetScaffold
 import io.github.chalicechore.moduletemplate.ui.component.PendingChange
 import io.github.chalicechore.moduletemplate.ui.screen.AboutScreen
-import io.github.chalicechore.moduletemplate.ui.screen.BackupRestoreGroup
+import io.github.chalicechore.moduletemplate.ui.screen.DataGroup
 import io.github.chalicechore.moduletemplate.ui.screen.ComponentsDemoScreen
 import io.github.chalicechore.moduletemplate.ui.screen.AppearanceScreen
 import io.github.chalicechore.moduletemplate.ui.screen.CategoryScreen
@@ -264,6 +264,7 @@ private fun SettingsNavigation(
                             onChoiceChange = viewModel::setChoice,
                             failed = state.failedFeatures,
                             highlight = key.highlight,
+                            onReset = if (ModuleConfig.RESET) ({ viewModel.resetCategory(key.category) }) else null,
                             onBack = { popIfTop(key) },
                         )
                     }
@@ -280,13 +281,11 @@ private fun SettingsNavigation(
                                 )
                             },
                             backup = {
-                                if (ModuleConfig.BACKUP_RESTORE) {
-                                    BackupRestoreGroup(
-                                        state = state,
-                                        onRestoreSettings = viewModel::restoreSettings,
-                                        onRestoreAppearance = viewModel::restoreAppearance,
-                                    )
-                                }
+                                DataGroup(
+                                    state = state,
+                                    onRestoreSettings = viewModel::restoreSettings,
+                                    onRestoreAppearance = viewModel::restoreAppearance,
+                                )
                             },
                             onBack = { popIfTop(Destination.About) },
                         )
