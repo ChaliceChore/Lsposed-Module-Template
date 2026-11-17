@@ -44,7 +44,9 @@ import io.github.chalicechore.moduletemplate.ui.ApplyPhase
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.wrapContentSize
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -319,7 +321,10 @@ private fun VersionsFooter() {
         }
     val target = stringResource(R.string.target_label)
     val module = stringResource(R.string.app_name)
-    Box(Modifier.fillMaxWidth().padding(horizontal = Tokens.ScreenMargin, vertical = 12.dp), contentAlignment = Alignment.Center) {
+    Box(
+        Modifier.fillMaxWidth().padding(start = Tokens.ScreenMargin, end = Tokens.ScreenMargin, top = 12.dp, bottom = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainer) {
             Row(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -356,18 +361,18 @@ private fun VersionsFooter() {
 private fun TitleWithIcon(title: String) {
     val iconSize = with(LocalDensity.current) { (LocalTextStyle.current.fontSize * 1.05f).toDp() }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            painterResource(R.drawable.ic_launcher_foreground),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            // The glyph sits in the 66 dp safe zone of a 108 dp canvas; crop to that zone.
-            modifier =
-                Modifier.size(iconSize).graphicsLayer {
-                    scaleX = LAUNCHER_SAFE_ZONE_ZOOM
-                    scaleY = LAUNCHER_SAFE_ZONE_ZOOM
-                },
-        )
-        Spacer(Modifier.width(10.dp))
+        // The glyph sits in the 66 dp safe zone of a 108 dp canvas. Draw the whole canvas at
+        // full size and clip to the safe zone, so the vector is rasterised sharp (scaling a
+        // small layer up would blur it).
+        Box(Modifier.size(iconSize).clipToBounds(), contentAlignment = Alignment.Center) {
+            Icon(
+                painterResource(R.drawable.ic_launcher_foreground),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.wrapContentSize(unbounded = true).requiredSize(iconSize * LAUNCHER_SAFE_ZONE_ZOOM),
+            )
+        }
+        Spacer(Modifier.width(6.dp))
         Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
