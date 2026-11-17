@@ -178,7 +178,7 @@ fun AboutScreen(
             IdentityCard(
                 about = about,
                 onOpenUrl = open,
-                modifier = Modifier.padding(Tokens.ScreenMargin),
+                modifier = Modifier.padding(start = Tokens.ScreenMargin, end = Tokens.ScreenMargin, top = Tokens.ScreenMargin),
             )
             LinkRows(
                 about = about,
@@ -201,6 +201,9 @@ private fun LinkRows(
     troubleshooting: @Composable () -> Unit,
     backup: @Composable () -> Unit,
 ) {
+    // TEMPLATE: groups are Updates, Help, Data, Project, Author, Legal. Help and Data are
+    // optional and drop out with their ModuleConfig flags.
+    SectionHeader(stringResource(R.string.section_updates))
     RowGroup(
         rows =
             listOf(
@@ -292,6 +295,7 @@ private fun LinkRows(
                 },
             ),
     )
+    SectionHeader(stringResource(R.string.section_legal))
     RowGroup(
         rows =
             listOf { shape ->
@@ -303,7 +307,7 @@ private fun LinkRows(
                     onClick = onOpenLicenses,
                 )
             },
-        modifier = Modifier.padding(top = 24.dp),
+        modifier = Modifier.padding(bottom = 24.dp),
     )
 }
 

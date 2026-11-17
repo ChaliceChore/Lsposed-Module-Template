@@ -149,8 +149,10 @@
     <string name="about_more_modules_summary">Other LSPosed modules you might like</string>
     <string name="section_project">Project</string>
     <string name="section_author">Author</string>
-    <string name="section_troubleshooting">Troubleshooting</string>
+    <string name="section_troubleshooting">Help</string>
     <string name="section_data">Data</string>
+    <string name="section_updates">Updates</string>
+    <string name="section_legal">Legal</string>
     <string name="reset_all_title">Reset all settings</string>
     <string name="reset_all_summary">Put settings back to their defaults</string>
     <string name="reset_all_note">Each part you tick goes back to its defaults. The module switch stays as it is. Reset module settings still need applying, and you can undo them before that.</string>
