@@ -390,7 +390,7 @@ Optional groups (Help and Data) drop out with their flags.
 
 ---
 
-## Phase J: Testing feedback, batch 2 (2026-11-17)
+## Phase J: Testing feedback, batch 2 (2026-11-17, done)
 
 Your feedback numbers are in brackets. One commit per step, built with the low-memory script.
 

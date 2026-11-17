@@ -92,6 +92,10 @@ sealed interface Destination {
     /** TEMPLATE demo of the optional components (ModuleConfig.DEMO_COMPONENTS). */
     data object Components : Destination
 
+    /** Screens where settings change, so the apply sheet stays visible there. */
+    val showsApplySheet: Boolean
+        get() = this == Home || this is Category || this == Search || this == Data
+
     fun toRoute(): String =
         when (this) {
             Home -> HOME
@@ -235,7 +239,8 @@ private fun SettingsNavigation(
     val transitions = rememberScreenTransitions()
     var restartDismissed by rememberSaveable { mutableStateOf(false) }
     ApplySheetScaffold(
-        content = applySheetContent(state, viewModel, restartDismissed),
+        // Only where settings can change; elsewhere the sheet slides away and comes back on return.
+        content = applySheetContent(state, viewModel, restartDismissed).takeIf { backStack.last().showsApplySheet },
         onApply = viewModel::apply,
         onDiscard = viewModel::discard,
         onRestartTarget = viewModel::restartTarget,
