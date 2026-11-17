@@ -387,3 +387,63 @@ Optional groups (Help and Data) drop out with their flags.
 - **Not translated yet:** a subheader, then the greyed-out languages sorted by their own
   names. Each row shows the English name as a subtitle ("Deutsch · German"), so they're easy to
   find.
+
+---
+## Phase J: Testing feedback, batch 2 (2026-11-17)
+
+Your feedback numbers are in brackets. One commit per step, built with the low-memory script.
+
+### J1. Home header and status badges [1, 2, 3, 4]
+- **Shape swap [1]:** Warning (Not loaded yet, Partly active) gets `Sunny`; Not active gets
+  `SoftBurst`.
+- **Turned off badge [2]:** its fill is `surfaceContainerHighest`, which sits on the card's
+  `surfaceContainerHigh`, so the pill almost vanishes. New fill: `outlineVariant`, with an
+  `onSurface` pause icon. That reads in light and dark, and stays neutral (not an error colour).
+- **Pill gap [3]:** padding under the versions pill drops from 12 dp to 4 dp. The section
+  header's own top padding gives the remaining space.
+- **Blurry title icon [4]:** cause: the vector is drawn at the small size and then *scaled up*
+  with `graphicsLayer`, which enlarges a bitmap. Fix: draw it at the full canvas size
+  (size × 108/66) and clip it to the visible box, so it is rasterised sharp. Icon-to-name
+  gap 10 → 6 dp.
+
+### J2. Demo screen and options sheet [5, 6]
+- **Preview row colour [5]:** `PreviewBlock` uses `surfaceContainer`, while rows use
+  `surfaceContainerHigh`. Give it a `color` parameter that defaults to the row colour, so the
+  preview matches the rows in the sheet and on the page.
+- **Try it out behind Gboard [6]:** the demo column gets `imePadding()`. The card asks to be
+  brought into view (`BringIntoViewRequester`) when its field gains focus or the text changes,
+  so the result line stays above the keyboard. The scaffold's top bar collapse still works.
+
+### J3. Apply sheet rows and motion [7, 8, 9, 10]
+- **Swipe background [7, 8]:**
+  - Under the removal point: `surfaceContainerHighest` darkened a step (`secondaryContainer`
+    if that still blends), with an outlined bin in `onSurfaceVariant`.
+  - Past the point: haptic tick, filled bin with a 1.0→1.2 pop, and the background fades to
+    `errorContainer` with an `onErrorContainer` icon.
+  - Dragging back reverses all of it.
+- **Predictable swipe [8]:** positional threshold = 40 % of the row width. A flick only
+  counts once the row has moved at least 25 % too, so short fast flicks no longer remove a
+  row. The "slow long drag stays" case gets checked on the device: the sheet's own drag may be
+  taking the gesture. If so, the row consumes horizontal drags first.
+- **Slower motion [9]:** the row collapse after removal goes to about 350 ms (from the
+  default spatial spring). The sheet's hide animation uses a slightly softer spring (lower
+  stiffness) via a sheet-only motion scheme.
+- **Separator [10]:** `onSurface` at 12 % alpha instead of `outlineVariant`, 1 dp and inset.
+
+### J4. Data and Help become their own screens [11, 12]
+- **Home's App group [11]:** Appearance, Data, Help, About.
+  - **Data:** Back up, Restore, Reset all settings. Shown when BACKUP_RESTORE or RESET is
+    on. Summary: "Back up, restore or reset".
+  - **Help:** Feature health, Debug logging, Report a problem. Summary: "Feature health,
+    logs, report a problem".
+  - New destinations `Destination.Data` and `Destination.Help`, built on `DetailScaffold`.
+    The groups lose their own section headers, since the screen title already says it. About
+    keeps Updates, Project, Author and Legal.
+- **What's new [12]:** the subtext becomes "Changes in v1.0.0" (`about_whats_new_summary` =
+  "Changes in v%1$s").
+
+### J5. Apply sheet only where settings change [13]
+- Navigation passes the sheet content only when the top destination is Home, a Category,
+  Search or Data. Anywhere else it passes null, so the sheet slides away and slides back on
+  return.
+- The Home status card still says Pending meanwhile.
