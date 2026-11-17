@@ -98,6 +98,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.SwipeToDismissBoxState
+import kotlin.math.abs
 
 /** Height the apply sheet covers at the bottom; lists add it as bottom padding. */
 val LocalApplySheetInset = compositionLocalOf { 0.dp }
@@ -134,6 +143,14 @@ class FailureAction(
 )
 
 private val CompactWindowHeight = 480.dp
+private const val SWIPE_REMOVE_FRACTION = 0.4f
+private const val SWIPE_FLICK_MIN_FRACTION = 0.25f
+private const val ROW_COLLAPSE_MILLIS = 350
+
+/** Expressive motion, with a slightly softer spring so the sheet shows and hides a tad slower. */
+private object SheetMotion : MotionScheme by MotionScheme.expressive() {
+    override fun <T> defaultSpatialSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.85f, stiffness = 250f)
+}
 private const val SUMMARY_NAMES_SHOWN = 2
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -218,7 +235,7 @@ fun ApplySheetScaffold(
                 .toDp()
         }
     val bodyMotionScheme = MaterialTheme.motionScheme
-    MaterialTheme(motionScheme = MotionScheme.expressive()) {
+    MaterialTheme(motionScheme = SheetMotion) {
         BottomSheetScaffold(
             modifier = modifier,
             scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
@@ -390,7 +407,7 @@ private fun ColumnScope.PendingSheet(
             .fillMaxWidth()
             .height(1.dp)
             .graphicsLayer { alpha = lineAlpha }
-            .background(MaterialTheme.colorScheme.outlineVariant, CircleShape),
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), CircleShape),
     )
     Column(
         modifier =
@@ -399,42 +416,74 @@ private fun ColumnScope.PendingSheet(
                 .verticalScroll(listScroll)
                 .navigationBarsPadding()
                 .padding(vertical = 8.dp)
-                .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
+                .animateContentSize(tween(ROW_COLLAPSE_MILLIS, easing = FastOutSlowInEasing)),
     ) {
         content.changes.forEach { change -> key(generation, change.key) { PendingChangeRow(change) } }
     }
 }
 
-/** One change. The ✕ button or a sideways swipe reverts just this change, without asking. */
+/**
+ * One change. The ✕ button, or a sideways swipe past [SWIPE_REMOVE_FRACTION] of the row,
+ * reverts just this change without asking. Crossing that point is signalled before release:
+ * haptic tick, filled bin, and a red background. A quick flick that moved less than
+ * [SWIPE_FLICK_MIN_FRACTION] doesn't count.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PendingChangeRow(change: PendingChange) {
     val haptics = LocalHapticFeedback.current
-    val revert by rememberUpdatedState(change.onRevert)
+    var widthPx by remember { mutableIntStateOf(0) }
+    val holder = remember { arrayOfNulls<SwipeToDismissBoxState>(1) }
     val dismiss =
         rememberSwipeToDismissBoxState(
             confirmValueChange = { value ->
-                if (value != SwipeToDismissBoxValue.Settled) {
-                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                    revert()
-                }
-                value != SwipeToDismissBoxValue.Settled
+                val offset = holder[0]?.let { runCatching { it.requireOffset() }.getOrNull() } ?: 0f
+                value == SwipeToDismissBoxValue.Settled || abs(offset) >= widthPx * SWIPE_FLICK_MIN_FRACTION
             },
+            positionalThreshold = { it * SWIPE_REMOVE_FRACTION },
         )
+    holder[0] = dismiss
+    // Revert once the row has settled off-screen, not from inside the gesture callback.
+    val revert by rememberUpdatedState(change.onRevert)
+    LaunchedEffect(dismiss.currentValue) {
+        if (dismiss.currentValue != SwipeToDismissBoxValue.Settled) revert()
+    }
+    val armed = dismiss.targetValue != SwipeToDismissBoxValue.Settled
+    LaunchedEffect(armed) {
+        if (armed) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+    }
+    val colors = MaterialTheme.colorScheme
+    val background by animateColorAsState(
+        if (armed) colors.errorContainer else colors.surfaceContainerHighest,
+        label = "swipeBackground",
+    )
+    val iconTint by animateColorAsState(
+        if (armed) colors.onErrorContainer else colors.onSurfaceVariant,
+        label = "swipeIcon",
+    )
+    val iconScale by animateFloatAsState(if (armed) 1.2f else 1f, label = "swipeIconScale")
     SwipeToDismissBox(
         state = dismiss,
+        modifier = Modifier.onSizeChanged { widthPx = it.width },
         backgroundContent = {
-            Row(
+            val fromStart = dismiss.dismissDirection != SwipeToDismissBoxValue.EndToStart
+            Box(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                        .background(background)
                         .padding(horizontal = Tokens.RowPadding),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                contentAlignment = if (fromStart) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
-                Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = null)
-                Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = null)
+                Icon(
+                    if (armed) Icons.Filled.Delete else Icons.Outlined.Delete,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                    },
+                )
             }
         },
     ) {
