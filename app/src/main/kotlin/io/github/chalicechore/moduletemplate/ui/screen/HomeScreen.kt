@@ -41,7 +41,10 @@ import io.github.chalicechore.moduletemplate.HomeLayout
 import io.github.chalicechore.moduletemplate.ModuleConfig
 import io.github.chalicechore.moduletemplate.TryItAction
 import io.github.chalicechore.moduletemplate.ui.ApplyPhase
-import io.github.chalicechore.moduletemplate.ui.component.AppIcon
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.graphicsLayer
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -98,7 +101,7 @@ import io.github.chalicechore.moduletemplate.ui.titleRes
  * Landing screen: large collapsing title, status card, then grouped rows.
  *
  * TEMPLATE: sections are "Always on" (read-only info), "Features" (one row per category)
- * and "App" (appearance, about). Drop "Always on" if the module has nothing fixed.
+ * and "App" (appearance, about). "Always on" is optional: ModuleConfig.ALWAYS_ON.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -172,18 +175,20 @@ fun HomeScreen(
             item(key = "versions", contentType = "footnote") {
                 VersionsFooter()
             }
-            item(key = "always_on_header", contentType = "header") {
-                SectionHeader(stringResource(R.string.section_always_on))
-            }
-            item(key = "always_on", contentType = "read_only") {
-                ReadOnlyRow(
-                    shape = shapeForPosition(1, 0),
-                    icon = Icons.Outlined.Shield,
-                    title = stringResource(R.string.always_on_title),
-                    summary = stringResource(R.string.always_on_summary),
-                    trailingIcon = Icons.Outlined.CheckCircle,
-                    modifier = Modifier.padding(horizontal = Tokens.ScreenMargin),
-                )
+            if (ModuleConfig.ALWAYS_ON) {
+                item(key = "always_on_header", contentType = "header") {
+                    SectionHeader(stringResource(R.string.section_always_on))
+                }
+                item(key = "always_on", contentType = "read_only") {
+                    ReadOnlyRow(
+                        shape = shapeForPosition(1, 0),
+                        icon = Icons.Outlined.Shield,
+                        title = stringResource(R.string.always_on_title),
+                        summary = stringResource(R.string.always_on_summary),
+                        trailingIcon = Icons.Outlined.CheckCircle,
+                        modifier = Modifier.padding(horizontal = Tokens.ScreenMargin),
+                    )
+                }
             }
             item(key = "features_header", contentType = "header") {
                 SectionHeader(stringResource(R.string.section_features))
@@ -225,22 +230,6 @@ fun HomeScreen(
                     )
                 }
             }
-            item(key = "features_footnote", contentType = "footnote") {
-                Text(
-                    text =
-                        stringResource(
-                            R.string.features_footnote,
-                            stringResource(R.string.target_label),
-                        ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier =
-                        Modifier.padding(
-                            horizontal = Tokens.RowPadding + 4.dp,
-                            vertical = 12.dp,
-                        ),
-                )
-            }
             if (onOpenComponents != null) {
                 item(key = "components", contentType = "category") {
                     NavigationRow(
@@ -249,7 +238,7 @@ fun HomeScreen(
                         title = stringResource(R.string.category_components),
                         summary = stringResource(R.string.category_components_summary),
                         onClick = onOpenComponents,
-                        modifier = Modifier.padding(horizontal = Tokens.ScreenMargin).padding(top = Tokens.ScreenMargin),
+                        modifier = Modifier.padding(horizontal = Tokens.ScreenMargin).padding(top = 24.dp),
                     )
                 }
             }
@@ -330,26 +319,55 @@ private fun VersionsFooter() {
         }
     val target = stringResource(R.string.target_label)
     val module = stringResource(R.string.app_name)
-    Text(
-        text =
-            if (targetVersion != null) {
-                stringResource(R.string.versions_footer, target, targetVersion, module, BuildConfig.VERSION_NAME)
-            } else {
-                stringResource(R.string.versions_footer_no_target, target, module, BuildConfig.VERSION_NAME)
-            },
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = Tokens.RowPadding + 4.dp, vertical = 8.dp),
-    )
+    Box(Modifier.fillMaxWidth().padding(horizontal = Tokens.ScreenMargin, vertical = 12.dp), contentAlignment = Alignment.Center) {
+        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainer) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text =
+                        if (targetVersion != null) {
+                            stringResource(R.string.versions_footer, target, targetVersion, module, BuildConfig.VERSION_NAME)
+                        } else {
+                            stringResource(R.string.versions_footer_no_target, target, module, BuildConfig.VERSION_NAME)
+                        },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
 }
 
-/** The app name with the real app icon before it, sized from the title's current text style. */
+/**
+ * The app name after the launcher glyph alone (no adaptive-icon background), tinted with the
+ * theme's primary colour: the wallpaper colour with Dynamic color on, otherwise the brand seed.
+ */
 @Composable
 private fun TitleWithIcon(title: String) {
-    val iconSize = with(LocalDensity.current) { (LocalTextStyle.current.fontSize * 1.2f).toDp() }
+    val iconSize = with(LocalDensity.current) { (LocalTextStyle.current.fontSize * 1.05f).toDp() }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        AppIcon(size = iconSize)
-        Spacer(Modifier.width(12.dp))
+        Icon(
+            painterResource(R.drawable.ic_launcher_foreground),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            // The glyph sits in the 66 dp safe zone of a 108 dp canvas; crop to that zone.
+            modifier =
+                Modifier.size(iconSize).graphicsLayer {
+                    scaleX = LAUNCHER_SAFE_ZONE_ZOOM
+                    scaleY = LAUNCHER_SAFE_ZONE_ZOOM
+                },
+        )
+        Spacer(Modifier.width(10.dp))
         Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -482,3 +500,4 @@ private fun CategoryCard(
 }
 
 private const val DISABLED_ALPHA = 0.38f
+private const val LAUNCHER_SAFE_ZONE_ZOOM = 108f / 66f

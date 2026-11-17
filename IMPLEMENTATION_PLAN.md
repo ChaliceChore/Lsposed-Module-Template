@@ -310,8 +310,6 @@ after each.
   the container pair, which already reads well. The other badges get the same contrast check.
 - **Versions line [3]:** a small pill (`surfaceContainer`, full-round corners, 8 dp vertical
   padding) holding "Target · Module" with a small icon, centred horizontally under the card.
-  ("Central align vertically" is read as: equal space above and below between the card and
-  the next section.)
 - **Always on [4]:** new `ModuleConfig.ALWAYS_ON` flag (default true in the template). When
   false the header and rows are skipped. The KDoc and README mark the section as optional.
 - **Footnote [5]:** remove the "Changes take effect after … restarts." line and its string.

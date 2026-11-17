@@ -31,7 +31,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PriorityHigh
 import androidx.compose.material.icons.rounded.Sync
@@ -72,6 +71,13 @@ import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
 import io.github.chalicechore.moduletemplate.R
+import io.github.chalicechore.moduletemplate.BuildConfig
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.foundation.combinedClickable
 import io.github.chalicechore.moduletemplate.ui.ApplyPhase
 import io.github.chalicechore.moduletemplate.ui.UiState
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
@@ -105,7 +111,7 @@ private fun StatusKind.polygon(): RoundedPolygon =
         StatusKind.Pending -> MaterialShapes.Clover4Leaf
         StatusKind.Warning -> MaterialShapes.SoftBurst
         StatusKind.Off -> MaterialShapes.Pill
-        StatusKind.NotActive -> MaterialShapes.Burst
+        StatusKind.NotActive -> MaterialShapes.Sunny
         StatusKind.Busy -> MaterialShapes.Cookie12Sided
     }.normalized()
 
@@ -115,7 +121,7 @@ private fun StatusKind.icon(): ImageVector? =
         StatusKind.Pending -> Icons.Rounded.Sync
         StatusKind.Warning -> Icons.Rounded.PriorityHigh
         StatusKind.Off -> Icons.Rounded.Pause
-        StatusKind.NotActive -> Icons.Rounded.Close
+        StatusKind.NotActive -> BoldCross
         StatusKind.Busy -> null
     }
 
@@ -127,8 +133,65 @@ private fun StatusKind.colors(): Pair<Color, Color> {
         StatusKind.Pending -> c.secondaryContainer to c.onSecondaryContainer
         StatusKind.Warning -> c.tertiaryContainer to c.onTertiaryContainer
         StatusKind.Off -> c.surfaceContainerHighest to c.onSurfaceVariant
-        StatusKind.NotActive -> c.errorContainer to c.onErrorContainer
+        // errorContainer is pale on a pale background in light mode, so use the solid pair there.
+        StatusKind.NotActive ->
+            if (c.surface.luminance() > 0.5f) c.error to c.onError else c.errorContainer to c.onErrorContainer
     }
+}
+
+/** A heavier ✕ than Icons.Rounded.Close, so it reads at badge size. */
+private val BoldCross: ImageVector by lazy {
+    ImageVector
+        .Builder("BoldCross", 24.dp, 24.dp, 24f, 24f)
+        .addPath(
+            pathData = PathParser().parsePathString("M6.5,6.5L17.5,17.5M17.5,6.5L6.5,17.5").toNodes(),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 3.2f,
+            strokeLineCap = StrokeCap.Round,
+        ).build()
+}
+
+/** Debug builds: long-press the status side to step through these instead of the real state. */
+@Composable
+private fun previewContents(): List<StatusContent> {
+    val target = stringResource(R.string.target_label)
+    return listOf(
+        StatusContent(
+            StatusKind.Active,
+            stringResource(R.string.status_active_title),
+            stringResource(R.string.status_framework, "LSPosed", "1.10.2", 101),
+        ),
+        StatusContent(
+            StatusKind.Pending,
+            stringResource(R.string.status_pending_title),
+            stringResource(R.string.status_pending_body, target),
+        ),
+        StatusContent(
+            StatusKind.Warning,
+            stringResource(R.string.status_not_loaded_title),
+            stringResource(R.string.status_not_loaded_body, target),
+        ),
+        StatusContent(
+            StatusKind.Warning,
+            stringResource(R.string.status_partly_title),
+            pluralStringResource(R.plurals.status_partly_body, 2, 2),
+        ),
+        StatusContent(
+            StatusKind.Off,
+            stringResource(R.string.status_off_title),
+            stringResource(R.string.status_off_body, target),
+        ),
+        StatusContent(
+            StatusKind.NotActive,
+            stringResource(R.string.status_inactive_title),
+            stringResource(R.string.status_inactive_body),
+        ),
+        StatusContent(
+            StatusKind.Busy,
+            stringResource(R.string.status_applying_title),
+            stringResource(R.string.status_step_restarting, target),
+        ),
+    )
 }
 
 @Composable
@@ -221,7 +284,10 @@ fun StatusCard(
     onOpenHealth: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val content = statusContent(state)
+    // Debug builds only: -1 shows the real state, 0+ an entry of previewContents().
+    var preview by remember { mutableIntStateOf(-1) }
+    val previews = if (BuildConfig.DEBUG) previewContents() else emptyList()
+    val content = previews.getOrNull(preview) ?: statusContent(state)
     val colors = MaterialTheme.colorScheme
     val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
     val haptics = LocalHapticFeedback.current
@@ -242,7 +308,21 @@ fun StatusCard(
                     Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .then(if (healthTappable) Modifier.clickable(onClick = onOpenHealth) else Modifier)
+                        .then(
+                            if (BuildConfig.DEBUG) {
+                                Modifier.combinedClickable(
+                                    onClick = { if (healthTappable) onOpenHealth() },
+                                    onLongClick = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        preview = if (preview + 1 >= previews.size) -1 else preview + 1
+                                    },
+                                )
+                            } else if (healthTappable) {
+                                Modifier.clickable(onClick = onOpenHealth)
+                            } else {
+                                Modifier
+                            },
+                        )
                         .padding(Tokens.RowPadding),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Tokens.RowPadding),
@@ -263,7 +343,7 @@ fun StatusCard(
                             },
                     ) {
                         Text(
-                            text = shown.title,
+                            text = if (preview >= 0) "${shown.title} (preview)" else shown.title,
                             style = MaterialTheme.typography.titleMedium,
                             color = colors.onSurface,
                         )

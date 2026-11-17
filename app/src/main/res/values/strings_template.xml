@@ -32,7 +32,6 @@
     <!-- Home -->
     <string name="section_always_on">Always on</string>
     <string name="section_features">Features</string>
-    <string name="features_footnote">Changes take effect after %1$s restarts.</string>
     <string name="section_app">App</string>
     <string name="appearance_title">Appearance and icon</string>
     <string name="about_title">About</string>

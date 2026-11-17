@@ -32,6 +32,12 @@ object ModuleConfig {
     /** Search field on Home. Worth it only for modules with many settings. */
     const val SEARCH = true
 
+    /**
+     * The "Always on" section on Home: read-only rows for what the module always does. Turn it
+     * off for modules where everything is a setting.
+     */
+    const val ALWAYS_ON = true
+
     /** "Back up and restore" in About. */
     const val BACKUP_RESTORE = true
 
