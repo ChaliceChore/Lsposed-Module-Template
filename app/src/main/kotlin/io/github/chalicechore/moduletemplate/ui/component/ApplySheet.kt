@@ -88,6 +88,16 @@ import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.ui.ApplyFailure
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.animateContentSize
 
 /** Height the apply sheet covers at the bottom; lists add it as bottom padding. */
 val LocalApplySheetInset = compositionLocalOf { 0.dp }
@@ -151,9 +161,22 @@ fun ApplySheetScaffold(
     body: @Composable () -> Unit,
 ) {
     var lastContent by remember { mutableStateOf(content) }
+    // Bumped each time the sheet comes back after being empty, so rows from the last showing
+    // (e.g. one still swiped away) never come back with stale state.
+    var generation by remember { mutableIntStateOf(0) }
+    var wasEmpty by remember { mutableStateOf(content == null) }
     SideEffect {
-        if (content != null) lastContent = content
+        if (content == null) {
+            wasEmpty = true
+        } else {
+            if (wasEmpty) {
+                wasEmpty = false
+                generation++
+            }
+            lastContent = content
+        }
     }
+    val scope = rememberCoroutineScope()
     val shown by rememberUpdatedState(content != null)
     val keepShown = remember { { value: SheetValue -> value != SheetValue.Hidden || !shown } }
     val sheetState =
@@ -200,9 +223,37 @@ fun ApplySheetScaffold(
             modifier = modifier,
             scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
             sheetPeekHeight = peekHeight,
+            sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            sheetShadowElevation = 12.dp,
             sheetDragHandle = {
-                Box(Modifier.onSizeChanged { handleHeightPx = it.height }) {
-                    BottomSheetDefaults.DragHandle()
+                // Tap toggles peek <-> expanded; no ripple on the handle.
+                val label = stringResource(R.string.sheet_toggle)
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .onSizeChanged { handleHeightPx = it.height }
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                enabled = target == SheetValue.PartiallyExpanded,
+                                onClickLabel = label,
+                            ) {
+                                scope.launch {
+                                    if (sheetState.currentValue == SheetValue.Expanded) {
+                                        sheetState.partialExpand()
+                                    } else {
+                                        sheetState.expand()
+                                    }
+                                }
+                            }.padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        Modifier
+                            .size(width = 36.dp, height = 4.dp)
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), CircleShape),
+                    )
                 }
             },
             sheetContent = {
@@ -210,6 +261,8 @@ fun ApplySheetScaffold(
                     is ApplySheetContent.Pending -> {
                         PendingSheet(
                             content = shownContent,
+                            generation = generation,
+                            collapsed = sheetState.targetValue != SheetValue.Expanded,
                             sideBySide = sideBySide,
                             onApply = onApply,
                             onDiscard = onDiscard,
@@ -241,7 +294,7 @@ fun ApplySheetScaffold(
             },
         ) {
             val sheetVisible = content != null || sheetState.currentValue != SheetValue.Hidden
-            val inset = if (sheetVisible) peekHeight else 0.dp
+            val inset by animateDpAsState(if (sheetVisible) peekHeight else 0.dp, label = "sheetInset")
             MaterialTheme(motionScheme = bodyMotionScheme) {
                 CompositionLocalProvider(LocalApplySheetInset provides inset, content = body)
             }
@@ -275,6 +328,8 @@ private fun Modifier.peekBlock(onHeight: (Int) -> Unit): Modifier =
 @Composable
 private fun ColumnScope.PendingSheet(
     content: ApplySheetContent.Pending,
+    generation: Int,
+    collapsed: Boolean,
     sideBySide: Boolean,
     onApply: () -> Unit,
     onDiscard: () -> Unit,
@@ -325,16 +380,28 @@ private fun ColumnScope.PendingSheet(
             },
         )
     }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = Tokens.RowPadding))
+    val listScroll = rememberScrollState()
+    // Back at peek, start the list from the top again so the next drag moves the sheet, not the list.
+    LaunchedEffect(collapsed) { if (collapsed) listScroll.scrollTo(0) }
+    val lineAlpha by animateFloatAsState(if (collapsed) 0f else 1f, label = "sheetLine")
+    Box(
+        Modifier
+            .padding(horizontal = Tokens.RowPadding * 2)
+            .fillMaxWidth()
+            .height(1.dp)
+            .graphicsLayer { alpha = lineAlpha }
+            .background(MaterialTheme.colorScheme.outlineVariant, CircleShape),
+    )
     Column(
         modifier =
             Modifier
                 .weight(1f, fill = false)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(listScroll)
                 .navigationBarsPadding()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 8.dp)
+                .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
     ) {
-        content.changes.forEach { change -> key(change.key) { PendingChangeRow(change) } }
+        content.changes.forEach { change -> key(generation, change.key) { PendingChangeRow(change) } }
     }
 }
 
@@ -385,6 +452,7 @@ private fun PendingChangeRow(change: PendingChange) {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
                     )
+                    Spacer(Modifier.width(8.dp))
                     IconButton(onClick = change.onRevert) {
                         Icon(
                             Icons.Outlined.Close,
@@ -394,7 +462,7 @@ private fun PendingChangeRow(change: PendingChange) {
                     }
                 }
             },
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         ) {
             Text(stringResource(change.titleRes))
         }
@@ -441,7 +509,7 @@ private fun SheetActions(
     primaryEnabled: Boolean,
     onPrimary: () -> Unit,
 ) {
-    val height = ButtonDefaults.MediumContainerHeight
+    val height = 48.dp
     val buttons: @Composable (Modifier) -> Unit = { rowModifier ->
         Row(
             modifier = rowModifier,

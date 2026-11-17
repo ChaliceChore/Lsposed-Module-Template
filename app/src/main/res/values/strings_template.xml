@@ -92,6 +92,7 @@
     </plurals>
     <string name="discard_body">Settings go back to what was last applied.</string>
     <string name="pending_revert">Undo %1$s</string>
+    <string name="sheet_toggle">Show or hide changes</string>
     <string name="restart_to_load_title">Restart %1$s to load the module</string>
     <string name="restart_to_load_body">%1$s was already running when the module was enabled.</string>
     <string name="restart_not_now">Not now</string>
