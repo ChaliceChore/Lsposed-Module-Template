@@ -275,11 +275,13 @@ private fun SettingsNavigation(
             else -> {}
         }
     }
+    val sheetContent = applySheetContent(state, viewModel, restartDismissed)
     CompositionLocalProvider(LocalTourState provides tour) {
         Box(Modifier.fillMaxSize()) {
             ApplySheetScaffold(
                 // Only where settings can change; elsewhere the sheet slides away and comes back on return.
-                content = applySheetContent(state, viewModel, restartDismissed).takeIf { backStack.last().showsApplySheet },
+                content = sheetContent.takeIf { backStack.last().showsApplySheet },
+                reserveInset = sheetContent != null,
                 onApply = viewModel::apply,
                 onDiscard = viewModel::discard,
                 onRestartTarget = viewModel::restartTarget,

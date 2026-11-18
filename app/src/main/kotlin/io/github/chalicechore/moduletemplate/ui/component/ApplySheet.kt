@@ -189,6 +189,9 @@ fun ApplySheetScaffold(
     onDismissRestart: () -> Unit,
     onOpenTargetInfo: () -> Unit,
     modifier: Modifier = Modifier,
+    // Keep the list inset while changes are pending, even where the sheet itself is hidden, so
+    // lists (Home) never shrink and lose their scroll position on a round trip.
+    reserveInset: Boolean = content != null,
     body: @Composable () -> Unit,
 ) {
     var lastContent by remember { mutableStateOf(content) }
@@ -325,7 +328,7 @@ fun ApplySheetScaffold(
             },
         ) {
             val sheetVisible = content != null || sheetState.currentValue != SheetValue.Hidden
-            val inset by animateDpAsState(if (sheetVisible) peekHeight else 0.dp, label = "sheetInset")
+            val inset by animateDpAsState(if (sheetVisible || reserveInset) peekHeight else 0.dp, label = "sheetInset")
             MaterialTheme(motionScheme = bodyMotionScheme) {
                 CompositionLocalProvider(LocalApplySheetInset provides inset, content = body)
             }
