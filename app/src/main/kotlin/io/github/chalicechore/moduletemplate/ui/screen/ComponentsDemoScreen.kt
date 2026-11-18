@@ -59,7 +59,11 @@ import io.github.chalicechore.moduletemplate.ui.component.TryOutCard
 import io.github.chalicechore.moduletemplate.ui.component.centeredContentWidth
 import io.github.chalicechore.moduletemplate.ui.theme.BrandSeed
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.imeAnimationTarget
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
 private val Weights = listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold)
 private val WeightNames = listOf(R.string.demo_weight_regular, R.string.demo_weight_medium, R.string.demo_weight_semibold, R.string.demo_weight_bold)
@@ -69,6 +73,7 @@ private val Kinds = listOf(R.string.demo_kind_alerting, R.string.demo_kind_silen
  * TEMPLATE: demo of every optional component (ModuleConfig.DEMO_COMPONENTS). State here is local
  * and not saved. Delete this file and FeatureCategory.COMPONENTS in a real module.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ComponentsDemoScreen(onBack: () -> Unit) {
     var color by rememberSaveable { mutableIntStateOf(BrandSeed.toArgb()) }
@@ -92,7 +97,6 @@ fun ComponentsDemoScreen(onBack: () -> Unit) {
         Column(
             Modifier
                 .centeredContentWidth()
-                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(contentPadding),
         ) {
@@ -199,6 +203,8 @@ fun ComponentsDemoScreen(onBack: () -> Unit) {
                 transform = { it.reversed() },
                 modifier = Modifier.padding(horizontal = Tokens.ScreenMargin).padding(bottom = 24.dp),
             )
+            // Room for the keyboard at its final height, reserved once when it starts opening.
+            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.imeAnimationTarget))
         }
     }
     if (sheet) {

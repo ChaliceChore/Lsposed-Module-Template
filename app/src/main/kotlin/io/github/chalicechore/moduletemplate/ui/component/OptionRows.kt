@@ -61,14 +61,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.onFocusChanged
-import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-
-private const val KEYBOARD_SETTLE_MILLIS = 250L
+import androidx.compose.foundation.layout.imeAnimationTarget
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.flow.first
 
 /**
  * #8 A "PREVIEW" frame for drawing the target's UI at its real size. The module draws [content];
@@ -305,14 +305,16 @@ fun TryOutCard(
 ) {
     var input by rememberSaveable { mutableStateOf(initial) }
     var focused by remember { mutableStateOf(false) }
-    // Keep the whole card (field and result) above the keyboard while typing.
+    // Keep the whole card (field and result) above the keyboard. One scroll, as soon as the
+    // keyboard's final height is known; the screen itself reserves that space once (see the
+    // demo screen's bottom spacer) instead of resizing on every animation frame.
     val bringIntoView = remember { BringIntoViewRequester() }
-    val imeVisible = WindowInsets.isImeVisible
-    LaunchedEffect(focused, imeVisible, input) {
-        if (focused) {
-            delay(KEYBOARD_SETTLE_MILLIS)
-            bringIntoView.bringIntoView()
-        }
+    val imeTarget = WindowInsets.imeAnimationTarget
+    val density = LocalDensity.current
+    LaunchedEffect(focused) {
+        if (!focused) return@LaunchedEffect
+        snapshotFlow { imeTarget.getBottom(density) > 0 }.first { it }
+        bringIntoView.bringIntoView()
     }
     Surface(
         shape = RoundedCornerShape(Tokens.OuterRowCorner),
