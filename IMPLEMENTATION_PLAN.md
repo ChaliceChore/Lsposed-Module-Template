@@ -448,3 +448,119 @@ Your feedback numbers are in brackets. One commit per step, built with the low-m
   Search or Data. Anywhere else it passes null, so the sheet slides away and slides back on
   return.
 - The Home status card still says Pending meanwhile.
+
+---
+
+## Testing feedback, batch 3 (collected 2026-11-18; plan: Phase K below)
+
+1. Turned off badge: dark icon on dark fill in light mode (082210, 082229). Use Pending's container/on-container logic or similar.
+2. Turned off badge: rounded square shape.
+3. Appearance: unselected segments under Theme and Home layout barely visible in light and dark (082300; 100028 not found).
+4. Returning to Home from Help/About loses Home's scroll position (likely the sheet hiding/showing).
+5. Apply sheet: drop "Saved on this device. Turn the module on…" subtext (show changed areas instead); tapping the disabled-looking Apply button shows it as a toast.
+6. Swipe: row past 50 % still didn't remove (20261117-190305). Threshold not honoured.
+7. Swipe: removal fires immediately; armed colour/icon change never visible. Likely targetValue doesn't track the threshold during drag; compute "armed" from the live offset instead.
+8. Category overflow menu: improve layout (110037).
+9. First-launch guided tour (Home spotlight coach marks):
+   - Dim scrim with an animated rounded spotlight cutout; tip card (title, text, "n of m", Back / Next·Done / Skip) placed on the side with room. Back key = previous step (Skip on step 1); taps outside do nothing; each step scrolls its target into view; reduced motion = no glide.
+   - Steps: welcome card → status card (incl. "enable in LSPosed + scope" when not active) → Features → Search* → Try it* → App group → closing card (apply sheet, tour in Help). *only if enabled.
+   - Shown once on first launch; "Show the tour again" row in Help. Seen flag in appearance prefs.
+   - Template: `ModuleConfig.TOUR` step list + `Modifier.tourTarget(id)`; empty list disables. TalkBack announces each step.
+   - Later option: "what's new" tour for new features after an update.
+   - Help screen keeps its name; with the tour row it gets two headers: "Guide" (Show the tour again) and "Troubleshooting" (Feature health, Debug logging, Report a problem).
+10. Home: slightly smaller gap between the Features group and the Components card (24 → 16 dp).
+11. Try it out: tapping the field makes the demo screen jump, then settle as the keyboard opens (result does end up visible). Investigate: likely imePadding resizing during the IME animation plus the field's own bring-into-view and our delayed one fighting. Fix: one bring-into-view after the IME animation ends, or drop imePadding and rely on bringIntoView with an IME-aware bottom inset.
+
+---
+
+## Phase K: Testing feedback, batch 3 (2026-11-18)
+
+Feedback numbers from batch 3 are in brackets. One commit per step, built with the
+low-memory script.
+
+### K1. Home and status card [1, 2, 4, 10]
+- **Turned off badge [1, 2]:**
+  - Colours: `secondaryContainer` / `onSecondaryContainer`, the same logic as Pending. Its
+    light-mode fill is light, so the dark pause icon reads well. Dark mode stays fine.
+  - Shape: `MaterialShapes.Square` (rounded square), so it is symmetrical and different from
+    the lobed shapes the other badges use.
+- **Home loses its scroll [4]:**
+  - The list and top-bar states currently live inside the Home entry. Coming back from a
+    screen without the sheet, Home is rebuilt while the sheet inset animates from 0, and the
+    position is lost or clamped.
+  - Fix: hoist a `rememberSaveable` `LazyListState` and `TopAppBarState` into Navigation (above
+    `NavDisplay`) and pass them to HomeScreen, so they survive any rebuild. Check the
+    category, Help and About round trips on the phone.
+  - The tour (K5) needs this same hoisted list state to scroll Home to each target.
+- **Gap [10]:** Features group → Components card: 24 → 16 dp.
+
+### K2. Appearance segments and category menu [3, 8]
+- **Segments [3]:** unselected `ToggleButton`s use `surfaceContainer`, nearly the same as the
+  row's `surfaceContainerHigh`.
+  - New unselected look: `surfaceContainerHighest` fill with a 1 dp `outlineVariant` border
+    and `onSurface` text.
+  - Selected stays as it is.
+  - Check it in light, dark and pure black.
+- **Overflow menu [8]:**
+  - Rounded (16 dp) menu on `surfaceContainerHigh`, a little shadow, and spacing that lines
+    it up under the ⋮ button instead of overlapping the title.
+  - When nothing differs from the defaults, the item shows a second line, "Already at
+    defaults", instead of only being greyed out.
+
+### K3. Apply sheet rows and text [5, 6, 7]
+- **Swipe [6, 7]:** `SwipeToDismissBox`'s target and threshold don't follow our 40 % rule
+  (removal fired early, and the armed state never showed). Replace it with our own swipe: a
+  horizontal `draggable` with an `Animatable` offset.
+  - **Armed:** whenever |offset| ≥ 40 % of the width, computed live, so the red background,
+    filled bin and haptic tick show *during* the drag.
+  - **On release:**
+    - Armed → slide out (about 250 ms), then revert the change.
+    - Not armed → spring back.
+    - A flick counts only if the row is already past 25 %.
+  - No removal happens until you let go.
+- **Not connected [5]:**
+  - The subtext shows the changed areas, the same as when the module is connected.
+  - The Apply button keeps its disabled look but takes taps; a tap shows a toast: "Turn
+    the module on in your Xposed manager to apply changes".
+  - The `pending_saved_on_device` string becomes that toast text.
+
+### K4. Try it out and the keyboard [11]
+- **Cause:** `imePadding()` resizes the screen on every frame of the keyboard animation, while
+  the text field scrolls itself into view and our delayed scroll does the same. Three movers
+  at once make the jump.
+- **Fix:**
+  - Drop `imePadding()` and the delayed scroll.
+  - At the end of the demo column, add a spacer as tall as the keyboard's *final* height
+    (`imeAnimationTarget`), so the layout changes once.
+  - Once the keyboard has finished opening and the field is focused, scroll the whole card
+    into view once.
+
+### K5. Guided tour [9]
+- **New file `ui/tour/Tour.kt`:**
+  - `TourStep(id, titleRes, bodyRes, listKey)`.
+  - `TourState`: current step, and target bounds reported by `Modifier.tourTarget(id)` in
+    window coordinates.
+  - `TourOverlay`:
+    - A scrim with an animated rounded spotlight cut out (offscreen layer with `BlendMode.Clear`).
+    - A tip card with the title, text, "n of m", and Back / Next (Done on the last step) /
+      Skip. The card sits above or below the spotlight, whichever side has room.
+    - Back key goes to the previous step; on step 1 it skips. Taps outside the card do
+      nothing. Reduced motion jumps instead of gliding.
+    - TalkBack: a live region announces each step.
+- **Placement:** the overlay sits above the apply sheet (outside `ApplySheetScaffold`). Steps
+  scroll the hoisted Home list (K1) to their `listKey` before the spotlight moves.
+- **Steps (Home):**
+  1. Welcome card (no spotlight).
+  2. Status card. When not active, the text leads with "Turn it on in LSPosed and add Target
+     App to its scope".
+  3. Features.
+  4. Search (if on).
+  5. Try it (if on).
+  6. App group.
+  7. Closing card: changes collect in the sheet at the bottom, and the tour lives in Help.
+- **Settings:** `ModuleConfig.TOUR` lists the steps; an empty list turns the tour off. A
+  `tour_seen` flag is stored with the appearance prefs. The tour starts once on first launch,
+  after the first frame of Home.
+- **Help screen:** two headers: "Guide" (Show the tour again) and "Troubleshooting" (Feature
+  health, Debug logging, Report a problem).
+- **Not in this step:** the "what's new" tour after updates.
