@@ -73,6 +73,7 @@ object ModuleConfig {
             if (SEARCH) add(TourStep(TourTarget.SEARCH, R.string.tour_search_title, R.string.tour_search_body))
             if (tryIt != null) add(TourStep(TourTarget.TRY_IT, R.string.tour_try_title, R.string.tour_try_body))
             add(TourStep(TourTarget.APP, R.string.tour_app_title, R.string.tour_app_body, scroll = TourScroll.BOTTOM))
+            add(TourStep(TourTarget.SHEET, R.string.tour_sheet_title, R.string.tour_sheet_body))
             add(TourStep(null, R.string.tour_done_title, R.string.tour_done_body))
         }
     }

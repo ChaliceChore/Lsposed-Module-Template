@@ -64,6 +64,7 @@ enum class TourTarget {
     SEARCH,
     TRY_IT,
     APP,
+    SHEET,
 }
 
 /** Where Home should scroll before a step is shown. */

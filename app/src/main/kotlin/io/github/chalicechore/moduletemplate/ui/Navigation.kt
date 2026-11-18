@@ -71,6 +71,8 @@ import io.github.chalicechore.moduletemplate.ui.tour.LocalTourState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.Box
 import kotlinx.coroutines.delay
+import io.github.chalicechore.moduletemplate.ui.tour.TourTarget
+import io.github.chalicechore.moduletemplate.prefs.FeatureSwitch
 
 /** Screens. Routes are strings so the back stack survives process death. */
 sealed interface Destination {
@@ -276,14 +278,36 @@ private fun SettingsNavigation(
         }
     }
     val sheetContent = applySheetContent(state, viewModel, restartDismissed)
+    // The tour's sheet step shows an example change instead; real settings are never touched.
+    val tourSheet = tourSteps.getOrNull(tour.index)?.target == TourTarget.SHEET
+    val exampleValue = stringResource(R.string.pending_change_on)
+    val exampleContent =
+        remember(exampleValue) {
+            ApplySheetContent.Pending(
+                canApply = true,
+                restart = true,
+                changes =
+                    listOf(
+                        PendingChange(
+                            key = "tour_example",
+                            titleRes = FeatureSwitch.FEATURE_ONE.titleRes,
+                            areaRes = FeatureSwitch.FEATURE_ONE.category.titleRes,
+                            value = exampleValue,
+                            highlighted = true,
+                            onRevert = {},
+                        ),
+                    ),
+            )
+        }
     CompositionLocalProvider(LocalTourState provides tour) {
         Box(Modifier.fillMaxSize()) {
             ApplySheetScaffold(
                 // Only where settings can change; elsewhere the sheet slides away and comes back on return.
-                content = sheetContent.takeIf { backStack.last().showsApplySheet },
+                content = if (tourSheet) exampleContent else sheetContent.takeIf { backStack.last().showsApplySheet },
                 reserveInset = sheetContent != null,
-                onApply = viewModel::apply,
-                onDiscard = viewModel::discard,
+                forceExpanded = tourSheet,
+                onApply = { if (!tourSheet) viewModel.apply() },
+                onDiscard = { if (!tourSheet) viewModel.discard() },
                 onRestartTarget = viewModel::restartTarget,
                 onDismissRestart = { restartDismissed = true },
                 onOpenTargetInfo = {

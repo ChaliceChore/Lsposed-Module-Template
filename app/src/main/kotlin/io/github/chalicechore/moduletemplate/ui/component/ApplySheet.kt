@@ -119,6 +119,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import kotlin.math.sign
+import io.github.chalicechore.moduletemplate.ui.tour.TourTarget
+import io.github.chalicechore.moduletemplate.ui.tour.tourTarget
 
 /** Height the apply sheet covers at the bottom; lists add it as bottom padding. */
 val LocalApplySheetInset = compositionLocalOf { 0.dp }
@@ -192,6 +194,8 @@ fun ApplySheetScaffold(
     // Keep the list inset while changes are pending, even where the sheet itself is hidden, so
     // lists (Home) never shrink and lose their scroll position on a round trip.
     reserveInset: Boolean = content != null,
+    // The tour shows the sheet fully open, so its example row is visible.
+    forceExpanded: Boolean = false,
     body: @Composable () -> Unit,
 ) {
     var lastContent by remember { mutableStateOf(content) }
@@ -221,7 +225,7 @@ fun ApplySheetScaffold(
     var handleHeightPx by remember { mutableIntStateOf(0) }
     var peekBlockHeightPx by remember { mutableIntStateOf(0) }
     val peekHeight = with(LocalDensity.current) { (handleHeightPx + peekBlockHeightPx).toDp() }
-    val target = content.sheetTarget()
+    val target = if (forceExpanded && content != null) SheetValue.Expanded else content.sheetTarget()
     LaunchedEffect(target) {
         when (target) {
             SheetValue.Hidden -> {
@@ -266,6 +270,7 @@ fun ApplySheetScaffold(
                     modifier =
                         Modifier
                             .fillMaxWidth()
+                            .tourTarget(TourTarget.SHEET, "handle")
                             .onSizeChanged { handleHeightPx = it.height }
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -423,6 +428,7 @@ private fun ColumnScope.PendingSheet(
         modifier =
             Modifier
                 .weight(1f, fill = false)
+                .tourTarget(TourTarget.SHEET, "rows")
                 .verticalScroll(listScroll)
                 .navigationBarsPadding()
                 .padding(vertical = 8.dp)

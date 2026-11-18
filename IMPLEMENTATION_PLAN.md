@@ -581,7 +581,7 @@ low-memory script.
 
 ---
 
-## Phase L: Testing feedback, batch 4 (2026-11-18)
+## Phase L: Testing feedback, batch 4 (2026-11-18, done except item 7)
 
 Feedback numbers from batch 4 are in brackets. One commit per step, built with the
 low-memory script.
@@ -603,6 +603,9 @@ low-memory script.
 - **Licences [7]:** the `aboutLibraries { }` block in app/build.gradle.kts gets
   `library { duplicationMode = MERGE; duplicationRule = GROUP }`, so artifacts with the same
   group merge into one entry. Count the entries before and after on the device.
+  **Not done:** with AboutLibraries 15.3.0 the setting compiled, but the generated list
+  stayed at 125 entries, so it was reverted. Next try: group the entries in our own
+  LicensesScreen (by groupId or licence, expandable) instead of relying on the plugin.
 
 ### L2. Home keeps its scroll position [2]
 - `ApplySheetScaffold` gets `reserveInset: Boolean`. Navigation passes "there is pending
