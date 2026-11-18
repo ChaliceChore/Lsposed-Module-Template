@@ -71,6 +71,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.foundation.layout.PaddingValues
 
 /** One feature category: its switches, plus the single-choice option where it belongs. */
 @Composable
@@ -101,9 +103,27 @@ fun CategoryScreen(
                     IconButton(onClick = { menu = true }) {
                         Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.more_options))
                     }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenu(
+                        expanded = menu,
+                        onDismissRequest = { menu = false },
+                        shape = RoundedCornerShape(16.dp),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shadowElevation = 3.dp,
+                        offset = DpOffset(x = (-8).dp, y = 4.dp),
+                    ) {
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.reset_category)) },
+                            text = {
+                                Column {
+                                    Text(stringResource(R.string.reset_category))
+                                    if (resetTo == settings) {
+                                        Text(
+                                            stringResource(R.string.reset_category_nothing),
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                    }
+                                }
+                            },
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                             leadingIcon = { Icon(Icons.Outlined.SettingsBackupRestore, null) },
                             enabled = resetTo != settings,
                             onClick = {

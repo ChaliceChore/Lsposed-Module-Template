@@ -160,6 +160,7 @@
     <string name="reset_all_note">Each part you tick goes back to its defaults. The module switch stays as it is. Reset module settings still need applying, and you can undo them before that.</string>
     <string name="reset_confirm">Reset</string>
     <string name="reset_category">Reset to defaults</string>
+    <string name="reset_category_nothing">Already at defaults</string>
     <string name="reset_category_title">Reset %1$s?</string>
     <string name="reset_category_body">These go back to their defaults. You can still undo them before applying.</string>
     <string name="more_options">More options</string>

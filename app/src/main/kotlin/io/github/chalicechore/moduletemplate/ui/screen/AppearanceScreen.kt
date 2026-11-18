@@ -83,6 +83,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.remember
 import java.text.Collator
 import java.util.Locale
+import androidx.compose.foundation.BorderStroke
 
 @Composable
 fun AppearanceScreen(
@@ -261,6 +262,14 @@ private fun <T> SegmentedChoiceRow(
                         }
                     },
                     modifier = itemModifier.semantics { role = Role.RadioButton },
+                    // Unselected options need a stronger fill and an outline to stand out from
+                    // the row's surfaceContainerHigh.
+                    colors =
+                        ToggleButtonDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ),
+                    border = if (mode == selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     shapes =
                         when {
                             stacked -> {
