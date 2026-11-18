@@ -51,11 +51,19 @@ class AppearanceRepository(
         preferences.edit().putString(HOME_LAYOUT, layout.name).apply()
     }
 
+    /** Whether the first-launch tour was finished or skipped. Not part of backups. */
+    fun tourSeen(): Boolean = preferences.getBoolean(TOUR_SEEN, false)
+
+    fun setTourSeen() {
+        preferences.edit().putBoolean(TOUR_SEEN, true).apply()
+    }
+
     companion object {
         const val FILE = "appearance"
         private const val THEME_MODE = "theme_mode"
         private const val DYNAMIC_COLOR = "dynamic_color"
         private const val PURE_BLACK = "pure_black"
         private const val HOME_LAYOUT = "home_layout"
+        private const val TOUR_SEEN = "tour_seen"
     }
 }

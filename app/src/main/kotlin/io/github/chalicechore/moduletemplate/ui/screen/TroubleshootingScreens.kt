@@ -67,6 +67,7 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.text.DateFormat
 import java.util.Date
+import androidx.compose.material.icons.outlined.Tour
 
 private const val MAX_ISSUE_URL = 8_000
 private const val LOG_LINES = 200
@@ -386,6 +387,7 @@ fun HelpScreen(
     onOpenHealth: () -> Unit,
     onDebugLoggingChange: (Boolean) -> Unit,
     onBack: () -> Unit,
+    onShowTour: (() -> Unit)? = null,
 ) {
     DetailScaffold(title = stringResource(R.string.section_troubleshooting), onBack = onBack) { contentPadding ->
         Column(
@@ -393,8 +395,25 @@ fun HelpScreen(
                 .centeredContentWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(contentPadding)
-                .padding(top = Tokens.ScreenMargin),
+                .padding(bottom = Tokens.ScreenMargin),
         ) {
+            if (onShowTour != null) {
+                SectionHeader(stringResource(R.string.section_guide))
+                RowGroup(
+                    rows =
+                        listOf { shape ->
+                            NavigationRow(
+                                shape = shape,
+                                icon = Icons.Outlined.Tour,
+                                title = stringResource(R.string.tour_show_again),
+                                summary = stringResource(R.string.tour_show_again_summary),
+                                onClick = onShowTour,
+                                trailing = RowTrailing.None,
+                            )
+                        },
+                )
+            }
+            SectionHeader(stringResource(R.string.section_troubleshooting_group))
             TroubleshootingGroup(state, troubleshooting, onOpenHealth, onDebugLoggingChange)
         }
     }

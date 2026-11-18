@@ -233,4 +233,29 @@
     <string name="about_star_on_github">Star on GitHub</string>
     <string name="about_kofi">Ko-fi</string>
     <string name="language_not_translated">Not translated yet</string>
+    <!-- First-launch tour. %1$s: app name in titles, target app in bodies. -->
+    <string name="tour_welcome_title">Welcome to %1$s</string>
+    <string name="tour_welcome_body">A quick look around. It takes under a minute, and you can skip it anytime.</string>
+    <string name="tour_status_title">Status and master switch</string>
+    <string name="tour_status_body">This card shows whether the module is working. The switch turns the whole module on or off.</string>
+    <string name="tour_status_body_inactive">First, turn the module on in LSPosed and add %1$s to its scope. This card then shows whether it\'s working, and the switch turns the whole module on or off.</string>
+    <string name="tour_features_title">Features</string>
+    <string name="tour_features_body">Settings are grouped by area. Tap a group to change what the module does.</string>
+    <string name="tour_search_title">Search</string>
+    <string name="tour_search_body">Find any setting by name.</string>
+    <string name="tour_try_title">Try it</string>
+    <string name="tour_try_body">Opens %1$s so you can see your changes.</string>
+    <string name="tour_app_title">App settings and help</string>
+    <string name="tour_app_body">Appearance, backup and reset, help and troubleshooting, and info about the module.</string>
+    <string name="tour_done_title">You\'re all set</string>
+    <string name="tour_done_body">Changes wait in a sheet at the bottom until you apply them; applying restarts %1$s when needed. You can replay this tour from Help.</string>
+    <string name="tour_step">%1$d of %2$d</string>
+    <string name="tour_next">Next</string>
+    <string name="tour_back">Back</string>
+    <string name="tour_skip">Skip</string>
+    <string name="tour_done">Done</string>
+    <string name="tour_show_again">Show the tour again</string>
+    <string name="tour_show_again_summary">A quick walk through the main screen</string>
+    <string name="section_guide">Guide</string>
+    <string name="section_troubleshooting_group">Troubleshooting</string>
 </resources>

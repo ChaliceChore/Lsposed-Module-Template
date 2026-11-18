@@ -191,6 +191,12 @@ class MainViewModel(
         viewModelScope.launch(Dispatchers.IO) { appearanceRepository.setHomeLayout(layout) }
     }
 
+    fun isTourSeen(): Boolean = appearanceRepository.tourSeen()
+
+    fun markTourSeen() {
+        viewModelScope.launch(Dispatchers.IO) { appearanceRepository.setTourSeen() }
+    }
+
     fun setPureBlack(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) { appearanceRepository.setPureBlack(enabled) }
     }

@@ -473,7 +473,7 @@ Your feedback numbers are in brackets. One commit per step, built with the low-m
 
 ---
 
-## Phase K: Testing feedback, batch 3 (2026-11-18)
+## Phase K: Testing feedback, batch 3 (2026-11-18, done)
 
 Feedback numbers from batch 3 are in brackets. One commit per step, built with the
 low-memory script.

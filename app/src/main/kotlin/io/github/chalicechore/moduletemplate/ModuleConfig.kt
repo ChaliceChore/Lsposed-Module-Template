@@ -3,6 +3,9 @@ package io.github.chalicechore.moduletemplate
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.StringRes
+import io.github.chalicechore.moduletemplate.ui.tour.TourScroll
+import io.github.chalicechore.moduletemplate.ui.tour.TourStep
+import io.github.chalicechore.moduletemplate.ui.tour.TourTarget
 
 /** The Home screen's Features section: one row per category, or a two-column card grid. */
 enum class HomeLayout {
@@ -49,6 +52,30 @@ object ModuleConfig {
      * FeatureCategory.COMPONENTS) in a real module.
      */
     const val DEMO_COMPONENTS = true
+
+    /**
+     * The first-launch tour of Home, shown once and again from Help. Empty turns it off.
+     * Steps for optional parts are left out when those parts are off.
+     */
+    val tour: List<TourStep> by lazy {
+        buildList {
+            add(TourStep(null, R.string.tour_welcome_title, R.string.tour_welcome_body))
+            add(
+                TourStep(
+                    TourTarget.STATUS,
+                    R.string.tour_status_title,
+                    R.string.tour_status_body,
+                    bodyInactiveRes = R.string.tour_status_body_inactive,
+                    scroll = TourScroll.TOP,
+                ),
+            )
+            add(TourStep(TourTarget.FEATURES, R.string.tour_features_title, R.string.tour_features_body, scroll = TourScroll.TOP))
+            if (SEARCH) add(TourStep(TourTarget.SEARCH, R.string.tour_search_title, R.string.tour_search_body))
+            if (tryIt != null) add(TourStep(TourTarget.TRY_IT, R.string.tour_try_title, R.string.tour_try_body))
+            add(TourStep(TourTarget.APP, R.string.tour_app_title, R.string.tour_app_body, scroll = TourScroll.BOTTOM))
+            add(TourStep(null, R.string.tour_done_title, R.string.tour_done_body))
+        }
+    }
 
     /** Home layout used until the user picks one in Appearance. */
     val defaultHomeLayout = HomeLayout.LIST

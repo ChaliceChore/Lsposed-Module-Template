@@ -64,6 +64,13 @@ import io.github.chalicechore.moduletemplate.ui.screen.DataScreen
 import io.github.chalicechore.moduletemplate.ui.screen.HelpScreen
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.rememberTopAppBarState
+import io.github.chalicechore.moduletemplate.ui.tour.TourState
+import io.github.chalicechore.moduletemplate.ui.tour.TourScroll
+import io.github.chalicechore.moduletemplate.ui.tour.TourOverlay
+import io.github.chalicechore.moduletemplate.ui.tour.LocalTourState
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.Box
+import kotlinx.coroutines.delay
 
 /** Screens. Routes are strings so the back stack survives process death. */
 sealed interface Destination {
@@ -179,6 +186,8 @@ sealed interface Destination {
     }
 }
 
+private const val TOUR_START_DELAY_MILLIS = 600L
+
 private val BackStackSaver =
     listSaver<SnapshotStateList<Destination>, String>(
         save = { stack -> stack.map(Destination::toRoute) },
@@ -244,123 +253,164 @@ private fun SettingsNavigation(
     // Home's scroll state lives here, outside NavDisplay, so returning to Home keeps its place.
     val homeList = rememberLazyListState()
     val homeTopBar = rememberTopAppBarState()
-    ApplySheetScaffold(
-        // Only where settings can change; elsewhere the sheet slides away and comes back on return.
-        content = applySheetContent(state, viewModel, restartDismissed).takeIf { backStack.last().showsApplySheet },
-        onApply = viewModel::apply,
-        onDiscard = viewModel::discard,
-        onRestartTarget = viewModel::restartTarget,
-        onDismissRestart = { restartDismissed = true },
-        onOpenTargetInfo = {
-            activity?.startActivity(
-                Intent(
-                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                    Uri.fromParts("package", BuildConfig.TARGET_PACKAGE, null),
-                ),
-            )
-        },
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        NavDisplay(
-            backStack = backStack,
-            onBack = { backStack.removeLastOrNull() },
-            entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator()),
-            transitionSpec = { transitions.forward },
-            popTransitionSpec = { transitions.back },
-            predictivePopTransitionSpec = { transitions.back },
-            entryProvider =
-                entryProvider {
-                    entry<Destination.Home> {
-                        HomeScreen(
-                            state = state,
-                            onOpenCategory = { backStack.add(Destination.Category(it)) },
-                            onOpenAppearance = { backStack.add(Destination.Appearance) },
-                            onOpenAbout = { backStack.add(Destination.About) },
-                            onOpenData = if (ModuleConfig.BACKUP_RESTORE || ModuleConfig.RESET) ({ backStack.add(Destination.Data) }) else null,
-                            onOpenHelp = { backStack.add(Destination.Help) },
-                            onModuleEnabledChange = viewModel::setModuleEnabled,
-                            onOpenHealth = { backStack.add(Destination.FeatureHealth) },
-                            onOpenComponents = if (ModuleConfig.DEMO_COMPONENTS) ({ backStack.add(Destination.Components) }) else null,
-                            onApply = viewModel::apply,
-                            onOpenSearch = if (ModuleConfig.SEARCH) ({ backStack.add(Destination.Search) }) else null,
-                            listState = homeList,
-                            topBarState = homeTopBar,
-                        )
-                    }
-                    entry<Destination.Category> { key ->
-                        CategoryScreen(
-                            category = key.category,
-                            settings = state.desired,
-                            onSwitchChange = viewModel::setSwitch,
-                            onChoiceChange = viewModel::setChoice,
-                            failed = state.failedFeatures,
-                            highlight = key.highlight,
-                            onReset = if (ModuleConfig.RESET) ({ viewModel.resetCategory(key.category) }) else null,
-                            onBack = { popIfTop(key) },
-                        )
-                    }
-                    entry<Destination.About> {
-                        AboutScreen(
-                            onOpenLicenses = { backStack.add(Destination.Licenses) },
-                            onOpenMoreModules = { backStack.add(Destination.MoreModules) },
-                            onBack = { popIfTop(Destination.About) },
-                        )
-                    }
-                    entry<Destination.Data> {
-                        DataScreen(
-                            state = state,
-                            onRestoreSettings = viewModel::restoreSettings,
-                            onRestoreAppearance = viewModel::restoreAppearance,
-                            onBack = { popIfTop(Destination.Data) },
-                        )
-                    }
-                    entry<Destination.Help> {
-                        HelpScreen(
-                            state = state,
-                            troubleshooting = troubleshooting,
-                            onOpenHealth = { backStack.add(Destination.FeatureHealth) },
-                            onDebugLoggingChange = viewModel::setDebugLogging,
-                            onBack = { popIfTop(Destination.Help) },
-                        )
-                    }
-                    entry<Destination.Components> {
-                        ComponentsDemoScreen(onBack = { popIfTop(Destination.Components) })
-                    }
-                    entry<Destination.Search> {
-                        SearchScreen(
-                            onOpenResult = { category, row ->
-                                popIfTop(Destination.Search)
-                                backStack.add(Destination.Category(category, row))
-                            },
-                            onBack = { popIfTop(Destination.Search) },
-                        )
-                    }
-                    entry<Destination.FeatureHealth> {
-                        FeatureHealthScreen(
-                            state = state,
-                            troubleshooting = troubleshooting,
-                            onHealthAlertsChange = viewModel::setHealthAlerts,
-                            onBack = { popIfTop(Destination.FeatureHealth) },
-                        )
-                    }
-                    entry<Destination.MoreModules> {
-                        MoreModulesScreen(onBack = { popIfTop(Destination.MoreModules) })
-                    }
-                    entry<Destination.Licenses> {
-                        LicensesScreen(onBack = { popIfTop(Destination.Licenses) })
-                    }
-                    entry<Destination.Appearance> {
-                        AppearanceScreen(
-                            appearance = state.appearance,
-                            onThemeModeChange = viewModel::setThemeMode,
-                            onDynamicColorChange = viewModel::setDynamicColor,
-                            onPureBlackChange = viewModel::setPureBlack,
-                            onHomeLayoutChange = viewModel::setHomeLayout,
-                            onBack = { popIfTop(Destination.Appearance) },
-                        )
-                    }
+    val tour = remember { TourState() }
+    val tourSteps = ModuleConfig.tour
+    // First launch: start the tour once Home has settled.
+    LaunchedEffect(Unit) {
+        if (tourSteps.isNotEmpty() && !viewModel.isTourSeen() && backStack.last() == Destination.Home) {
+            delay(TOUR_START_DELAY_MILLIS)
+            tour.start()
+        }
+    }
+    // Each step scrolls Home so its target is in view.
+    LaunchedEffect(tour.index) {
+        when (tourSteps.getOrNull(tour.index)?.scroll) {
+            TourScroll.TOP -> {
+                homeTopBar.heightOffset = 0f
+                homeList.animateScrollToItem(0)
+            }
+            TourScroll.BOTTOM -> {
+                homeList.animateScrollToItem((homeList.layoutInfo.totalItemsCount - 1).coerceAtLeast(0))
+            }
+            else -> {}
+        }
+    }
+    CompositionLocalProvider(LocalTourState provides tour) {
+        Box(Modifier.fillMaxSize()) {
+            ApplySheetScaffold(
+                // Only where settings can change; elsewhere the sheet slides away and comes back on return.
+                content = applySheetContent(state, viewModel, restartDismissed).takeIf { backStack.last().showsApplySheet },
+                onApply = viewModel::apply,
+                onDiscard = viewModel::discard,
+                onRestartTarget = viewModel::restartTarget,
+                onDismissRestart = { restartDismissed = true },
+                onOpenTargetInfo = {
+                    activity?.startActivity(
+                        Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", BuildConfig.TARGET_PACKAGE, null),
+                        ),
+                    )
                 },
-        )
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                NavDisplay(
+                    backStack = backStack,
+                    onBack = { backStack.removeLastOrNull() },
+                    entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator()),
+                    transitionSpec = { transitions.forward },
+                    popTransitionSpec = { transitions.back },
+                    predictivePopTransitionSpec = { transitions.back },
+                    entryProvider =
+                        entryProvider {
+                            entry<Destination.Home> {
+                                HomeScreen(
+                                    state = state,
+                                    onOpenCategory = { backStack.add(Destination.Category(it)) },
+                                    onOpenAppearance = { backStack.add(Destination.Appearance) },
+                                    onOpenAbout = { backStack.add(Destination.About) },
+                                    onOpenData = if (ModuleConfig.BACKUP_RESTORE || ModuleConfig.RESET) ({ backStack.add(Destination.Data) }) else null,
+                                    onOpenHelp = { backStack.add(Destination.Help) },
+                                    onModuleEnabledChange = viewModel::setModuleEnabled,
+                                    onOpenHealth = { backStack.add(Destination.FeatureHealth) },
+                                    onOpenComponents = if (ModuleConfig.DEMO_COMPONENTS) ({ backStack.add(Destination.Components) }) else null,
+                                    onApply = viewModel::apply,
+                                    onOpenSearch = if (ModuleConfig.SEARCH) ({ backStack.add(Destination.Search) }) else null,
+                                    listState = homeList,
+                                    topBarState = homeTopBar,
+                                )
+                            }
+                            entry<Destination.Category> { key ->
+                                CategoryScreen(
+                                    category = key.category,
+                                    settings = state.desired,
+                                    onSwitchChange = viewModel::setSwitch,
+                                    onChoiceChange = viewModel::setChoice,
+                                    failed = state.failedFeatures,
+                                    highlight = key.highlight,
+                                    onReset = if (ModuleConfig.RESET) ({ viewModel.resetCategory(key.category) }) else null,
+                                    onBack = { popIfTop(key) },
+                                )
+                            }
+                            entry<Destination.About> {
+                                AboutScreen(
+                                    onOpenLicenses = { backStack.add(Destination.Licenses) },
+                                    onOpenMoreModules = { backStack.add(Destination.MoreModules) },
+                                    onBack = { popIfTop(Destination.About) },
+                                )
+                            }
+                            entry<Destination.Data> {
+                                DataScreen(
+                                    state = state,
+                                    onRestoreSettings = viewModel::restoreSettings,
+                                    onRestoreAppearance = viewModel::restoreAppearance,
+                                    onBack = { popIfTop(Destination.Data) },
+                                )
+                            }
+                            entry<Destination.Help> {
+                                HelpScreen(
+                                    state = state,
+                                    troubleshooting = troubleshooting,
+                                    onOpenHealth = { backStack.add(Destination.FeatureHealth) },
+                                    onDebugLoggingChange = viewModel::setDebugLogging,
+                                    onBack = { popIfTop(Destination.Help) },
+                                    onShowTour =
+                                        if (tourSteps.isNotEmpty()) {
+                                            {
+                                                while (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+                                                tour.start()
+                                            }
+                                        } else {
+                                            null
+                                        },
+                                )
+                            }
+                            entry<Destination.Components> {
+                                ComponentsDemoScreen(onBack = { popIfTop(Destination.Components) })
+                            }
+                            entry<Destination.Search> {
+                                SearchScreen(
+                                    onOpenResult = { category, row ->
+                                        popIfTop(Destination.Search)
+                                        backStack.add(Destination.Category(category, row))
+                                    },
+                                    onBack = { popIfTop(Destination.Search) },
+                                )
+                            }
+                            entry<Destination.FeatureHealth> {
+                                FeatureHealthScreen(
+                                    state = state,
+                                    troubleshooting = troubleshooting,
+                                    onHealthAlertsChange = viewModel::setHealthAlerts,
+                                    onBack = { popIfTop(Destination.FeatureHealth) },
+                                )
+                            }
+                            entry<Destination.MoreModules> {
+                                MoreModulesScreen(onBack = { popIfTop(Destination.MoreModules) })
+                            }
+                            entry<Destination.Licenses> {
+                                LicensesScreen(onBack = { popIfTop(Destination.Licenses) })
+                            }
+                            entry<Destination.Appearance> {
+                                AppearanceScreen(
+                                    appearance = state.appearance,
+                                    onThemeModeChange = viewModel::setThemeMode,
+                                    onDynamicColorChange = viewModel::setDynamicColor,
+                                    onPureBlackChange = viewModel::setPureBlack,
+                                    onHomeLayoutChange = viewModel::setHomeLayout,
+                                    onBack = { popIfTop(Destination.Appearance) },
+                                )
+                            }
+                        },
+                )
+            }
+            TourOverlay(
+                state = tour,
+                steps = tourSteps,
+                active = state.framework != null,
+                onFinish = viewModel::markTourSeen,
+            )
+        }
     }
 }
 

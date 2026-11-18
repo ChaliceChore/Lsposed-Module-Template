@@ -105,6 +105,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberTopAppBarState
+import io.github.chalicechore.moduletemplate.ui.tour.TourTarget
+import io.github.chalicechore.moduletemplate.ui.tour.tourTarget
 
 /**
  * Landing screen: large collapsing title, status card, then grouped rows.
@@ -147,7 +149,7 @@ fun HomeScreen(
                 title = { TitleWithIcon(stringResource(R.string.app_name)) },
                 actions = {
                     if (onOpenSearch != null) {
-                        IconButton(onClick = onOpenSearch) {
+                        IconButton(onClick = onOpenSearch, modifier = Modifier.tourTarget(TourTarget.SEARCH)) {
                             Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.search_hint))
                         }
                     }
@@ -184,7 +186,7 @@ fun HomeScreen(
                     state = state,
                     onModuleEnabledChange = onModuleEnabledChange,
                     onOpenHealth = onOpenHealth,
-                    modifier = Modifier.padding(top = Tokens.ScreenMargin),
+                    modifier = Modifier.padding(top = Tokens.ScreenMargin).tourTarget(TourTarget.STATUS),
                 )
             }
             item(key = "versions", contentType = "footnote") {
@@ -221,7 +223,8 @@ fun HomeScreen(
                         modifier =
                             Modifier
                                 .padding(horizontal = Tokens.ScreenMargin)
-                                .padding(top = if (index == 0) 0.dp else 8.dp),
+                                .padding(top = if (index == 0) 0.dp else 8.dp)
+                                .tourTarget(TourTarget.FEATURES, "grid$index"),
                     )
                 }
             } else {
@@ -241,7 +244,8 @@ fun HomeScreen(
                         modifier =
                             Modifier
                                 .padding(horizontal = Tokens.ScreenMargin)
-                                .padding(top = if (index == 0) 0.dp else Tokens.RowGap),
+                                .padding(top = if (index == 0) 0.dp else Tokens.RowGap)
+                                .tourTarget(TourTarget.FEATURES, category.name),
                     )
                 }
             }
@@ -285,7 +289,8 @@ fun HomeScreen(
                     modifier =
                         Modifier
                             .padding(horizontal = Tokens.ScreenMargin)
-                            .padding(top = if (index == 0) 0.dp else Tokens.RowGap),
+                            .padding(top = if (index == 0) 0.dp else Tokens.RowGap)
+                            .tourTarget(TourTarget.APP, key),
                 )
             }
         }
@@ -429,7 +434,7 @@ private fun TryItButton(
         onClick = { if (state.pendingCount > 0) ask = true else launch() },
         enabled = enabled,
         contentPadding = PaddingValues(start = 16.dp, end = 12.dp),
-        modifier = Modifier.padding(end = 8.dp),
+        modifier = Modifier.padding(end = 8.dp).tourTarget(TourTarget.TRY_IT),
     ) {
         Text(stringResource(action.labelRes))
         Spacer(Modifier.width(6.dp))
