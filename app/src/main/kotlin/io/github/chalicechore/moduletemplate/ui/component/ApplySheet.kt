@@ -107,6 +107,18 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.SwipeToDismissBoxState
 import kotlin.math.abs
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.animation.core.animate
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import kotlin.math.sign
 
 /** Height the apply sheet covers at the bottom; lists add it as bottom padding. */
 val LocalApplySheetInset = compositionLocalOf { 0.dp }
@@ -146,6 +158,8 @@ private val CompactWindowHeight = 480.dp
 private const val SWIPE_REMOVE_FRACTION = 0.4f
 private const val SWIPE_FLICK_MIN_FRACTION = 0.25f
 private const val ROW_COLLAPSE_MILLIS = 350
+private const val SWIPE_OUT_MILLIS = 250
+private val SWIPE_FLICK_VELOCITY = 400.dp
 
 /** Expressive motion, with a slightly softer spring so the sheet shows and hides a tad slower. */
 private object SheetMotion : MotionScheme by MotionScheme.expressive() {
@@ -354,12 +368,8 @@ private fun ColumnScope.PendingSheet(
 ) {
     val count = content.changes.size
     val title = pluralStringResource(R.plurals.pending_changes, count, count)
-    val summary =
-        if (content.canApply) {
-            changedAreasSummary(content.changes)
-        } else {
-            stringResource(R.string.pending_saved_on_device)
-        }
+    val summary = changedAreasSummary(content.changes)
+    val context = LocalContext.current
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     val target = stringResource(R.string.target_label)
     SheetActions(
@@ -378,6 +388,10 @@ private fun ColumnScope.PendingSheet(
         primaryIcon = if (content.restart) Icons.Outlined.RestartAlt else Icons.Outlined.Check,
         primaryEnabled = content.canApply,
         onPrimary = onApply,
+        // Looks disabled while the module isn't active, but a tap says why.
+        onPrimaryDisabledTap = {
+            Toast.makeText(context, R.string.pending_saved_on_device, Toast.LENGTH_LONG).show()
+        },
     )
     if (confirmDiscard) {
         AlertDialog(
@@ -423,34 +437,22 @@ private fun ColumnScope.PendingSheet(
 }
 
 /**
- * One change. The ✕ button, or a sideways swipe past [SWIPE_REMOVE_FRACTION] of the row,
- * reverts just this change without asking. Crossing that point is signalled before release:
- * haptic tick, filled bin, and a red background. A quick flick that moved less than
- * [SWIPE_FLICK_MIN_FRACTION] doesn't count.
+ * One change. The ✕ button, or a sideways swipe, reverts just this change without asking.
+ * The swipe is decided on release only: past [SWIPE_REMOVE_FRACTION] of the row (or a flick
+ * that already moved [SWIPE_FLICK_MIN_FRACTION]) removes it, anything less springs back.
+ * Crossing the removal point shows while dragging: haptic tick, filled bin, red background.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PendingChangeRow(change: PendingChange) {
     val haptics = LocalHapticFeedback.current
-    var widthPx by remember { mutableIntStateOf(0) }
-    val holder = remember { arrayOfNulls<SwipeToDismissBoxState>(1) }
-    val dismiss =
-        rememberSwipeToDismissBoxState(
-            confirmValueChange = { value ->
-                val offset = holder[0]?.let { runCatching { it.requireOffset() }.getOrNull() } ?: 0f
-                value == SwipeToDismissBoxValue.Settled || abs(offset) >= widthPx * SWIPE_FLICK_MIN_FRACTION
-            },
-            positionalThreshold = { it * SWIPE_REMOVE_FRACTION },
-        )
-    holder[0] = dismiss
-    // Revert once the row has settled off-screen, not from inside the gesture callback.
+    val density = LocalDensity.current
     val revert by rememberUpdatedState(change.onRevert)
-    LaunchedEffect(dismiss.currentValue) {
-        if (dismiss.currentValue != SwipeToDismissBoxValue.Settled) revert()
-    }
-    val armed = dismiss.targetValue != SwipeToDismissBoxValue.Settled
+    var widthPx by remember { mutableIntStateOf(0) }
+    var dragX by remember { mutableFloatStateOf(0f) }
+    var leaving by remember { mutableStateOf(false) }
+    val armed = widthPx > 0 && abs(dragX) >= widthPx * SWIPE_REMOVE_FRACTION
     LaunchedEffect(armed) {
-        if (armed) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+        if (armed && !leaving) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
     }
     val colors = MaterialTheme.colorScheme
     val background by animateColorAsState(
@@ -462,31 +464,58 @@ private fun PendingChangeRow(change: PendingChange) {
         label = "swipeIcon",
     )
     val iconScale by animateFloatAsState(if (armed) 1.2f else 1f, label = "swipeIconScale")
-    SwipeToDismissBox(
-        state = dismiss,
-        modifier = Modifier.onSizeChanged { widthPx = it.width },
-        backgroundContent = {
-            val fromStart = dismiss.dismissDirection != SwipeToDismissBoxValue.EndToStart
+    val flickVelocity = with(density) { SWIPE_FLICK_VELOCITY.toPx() }
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .onSizeChanged { widthPx = it.width },
+    ) {
+        if (dragX != 0f) {
             Box(
                 modifier =
                     Modifier
-                        .fillMaxSize()
+                        .matchParentSize()
                         .background(background)
                         .padding(horizontal = Tokens.RowPadding),
-                contentAlignment = if (fromStart) Alignment.CenterStart else Alignment.CenterEnd,
+                contentAlignment = if (dragX > 0) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
                 Icon(
                     if (armed) Icons.Filled.Delete else Icons.Outlined.Delete,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
-                    },
+                    modifier =
+                        Modifier.graphicsLayer {
+                            scaleX = iconScale
+                            scaleY = iconScale
+                        },
                 )
             }
-        },
-    ) {
+        }
+        val dragState = rememberDraggableState { delta -> if (!leaving) dragX += delta }
+        Box(
+            Modifier
+                .offset { IntOffset(dragX.roundToInt(), 0) }
+                .draggable(
+                    state = dragState,
+                    orientation = Orientation.Horizontal,
+                    enabled = !leaving,
+                    onDragStopped = { velocity ->
+                        val width = widthPx.toFloat()
+                        val flick =
+                            abs(velocity) > flickVelocity &&
+                                sign(velocity) == sign(dragX) &&
+                                abs(dragX) >= width * SWIPE_FLICK_MIN_FRACTION
+                        if (width > 0f && (abs(dragX) >= width * SWIPE_REMOVE_FRACTION || flick)) {
+                            leaving = true
+                            animate(dragX, sign(dragX) * width, animationSpec = tween(SWIPE_OUT_MILLIS)) { v, _ -> dragX = v }
+                            revert()
+                        } else {
+                            animate(dragX, 0f, animationSpec = spring(dampingRatio = 0.8f)) { v, _ -> dragX = v }
+                        }
+                    },
+                ),
+        ) {
         ListItem(
             supportingContent = { Text(stringResource(change.areaRes)) },
             trailingContent = {
@@ -514,6 +543,7 @@ private fun PendingChangeRow(change: PendingChange) {
             colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         ) {
             Text(stringResource(change.titleRes))
+        }
         }
     }
 }
@@ -557,6 +587,7 @@ private fun SheetActions(
     primaryIcon: ImageVector,
     primaryEnabled: Boolean,
     onPrimary: () -> Unit,
+    onPrimaryDisabledTap: (() -> Unit)? = null,
 ) {
     val height = 48.dp
     val buttons: @Composable (Modifier) -> Unit = { rowModifier ->
@@ -571,9 +602,19 @@ private fun SheetActions(
                 modifier = Modifier.heightIn(min = height),
                 contentPadding = ButtonDefaults.contentPaddingFor(height),
             ) { Text(secondaryLabel, maxLines = 1) }
+            val tapWhenDisabled = !primaryEnabled && onPrimaryDisabledTap != null
             Button(
-                onClick = onPrimary,
-                enabled = primaryEnabled,
+                onClick = { if (primaryEnabled) onPrimary() else onPrimaryDisabledTap?.invoke() },
+                enabled = primaryEnabled || tapWhenDisabled,
+                colors =
+                    if (tapWhenDisabled) {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                            contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        )
+                    } else {
+                        ButtonDefaults.buttonColors()
+                    },
                 shapes = ButtonDefaults.shapes(),
                 modifier = Modifier.weight(1f, fill = !sideBySide).heightIn(min = height),
                 contentPadding = ButtonDefaults.contentPaddingFor(height),

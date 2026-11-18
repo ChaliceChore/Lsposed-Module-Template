@@ -71,7 +71,7 @@
         <item quantity="other">%d changes not applied yet</item>
     </plurals>
     <string name="pending_areas_more">%1$s and %2$d more</string>
-    <string name="pending_saved_on_device">Saved on this device. Turn the module on in your Xposed manager to apply them</string>
+    <string name="pending_saved_on_device">Turn the module on in your Xposed manager to apply changes</string>
     <string name="pending_change_on">On</string>
     <string name="master_switch_title">Module</string>
     <string name="try_it">Try it</string>
