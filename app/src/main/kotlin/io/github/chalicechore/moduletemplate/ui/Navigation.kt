@@ -62,6 +62,8 @@ import io.github.chalicechore.moduletemplate.ui.theme.ModuleTheme
 import io.github.chalicechore.moduletemplate.ui.theme.isReducedMotion
 import io.github.chalicechore.moduletemplate.ui.screen.DataScreen
 import io.github.chalicechore.moduletemplate.ui.screen.HelpScreen
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.rememberTopAppBarState
 
 /** Screens. Routes are strings so the back stack survives process death. */
 sealed interface Destination {
@@ -218,6 +220,7 @@ fun SettingsApp(viewModel: MainViewModel) {
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsNavigation(
     state: UiState.Ready,
@@ -238,6 +241,9 @@ private fun SettingsNavigation(
     val activity = LocalActivity.current
     val transitions = rememberScreenTransitions()
     var restartDismissed by rememberSaveable { mutableStateOf(false) }
+    // Home's scroll state lives here, outside NavDisplay, so returning to Home keeps its place.
+    val homeList = rememberLazyListState()
+    val homeTopBar = rememberTopAppBarState()
     ApplySheetScaffold(
         // Only where settings can change; elsewhere the sheet slides away and comes back on return.
         content = applySheetContent(state, viewModel, restartDismissed).takeIf { backStack.last().showsApplySheet },
@@ -277,6 +283,8 @@ private fun SettingsNavigation(
                             onOpenComponents = if (ModuleConfig.DEMO_COMPONENTS) ({ backStack.add(Destination.Components) }) else null,
                             onApply = viewModel::apply,
                             onOpenSearch = if (ModuleConfig.SEARCH) ({ backStack.add(Destination.Search) }) else null,
+                            listState = homeList,
+                            topBarState = homeTopBar,
                         )
                     }
                     entry<Destination.Category> { key ->

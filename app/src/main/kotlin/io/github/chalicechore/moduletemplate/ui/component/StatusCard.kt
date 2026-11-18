@@ -110,7 +110,7 @@ private fun StatusKind.polygon(): RoundedPolygon =
         StatusKind.Active -> MaterialShapes.Cookie9Sided
         StatusKind.Pending -> MaterialShapes.Clover4Leaf
         StatusKind.Warning -> MaterialShapes.Sunny
-        StatusKind.Off -> MaterialShapes.Pill
+        StatusKind.Off -> MaterialShapes.Square
         StatusKind.NotActive -> MaterialShapes.SoftBurst
         StatusKind.Busy -> MaterialShapes.Cookie12Sided
     }.normalized()
@@ -132,8 +132,7 @@ private fun StatusKind.colors(): Pair<Color, Color> {
         StatusKind.Active, StatusKind.Busy -> c.primaryContainer to c.onPrimaryContainer
         StatusKind.Pending -> c.secondaryContainer to c.onSecondaryContainer
         StatusKind.Warning -> c.tertiaryContainer to c.onTertiaryContainer
-        // Neutral, but dark enough to stand out from the card's surfaceContainerHigh.
-        StatusKind.Off -> c.outlineVariant to c.onSurface
+        StatusKind.Off -> c.secondaryContainer to c.onSecondaryContainer
         // errorContainer is pale on a pale background in light mode, so use the solid pair there.
         StatusKind.NotActive ->
             if (c.surface.luminance() > 0.5f) c.error to c.onError else c.errorContainer to c.onErrorContainer

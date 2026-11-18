@@ -101,6 +101,10 @@ import io.github.chalicechore.moduletemplate.ui.titleRes
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.TopAppBarState
+import androidx.compose.material3.rememberTopAppBarState
 
 /**
  * Landing screen: large collapsing title, status card, then grouped rows.
@@ -122,8 +126,11 @@ fun HomeScreen(
     onApply: () -> Unit,
     onOpenSearch: (() -> Unit)? = null,
     onOpenComponents: (() -> Unit)? = null,
+    // Hoisted by the caller so the scroll position survives Home being rebuilt.
+    listState: LazyListState = rememberLazyListState(),
+    topBarState: TopAppBarState = rememberTopAppBarState(),
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topBarState)
     val bottomPadding = listBottomPadding()
     val direction = LocalLayoutDirection.current
     val launcherIconVisible by rememberLauncherIconVisible()
@@ -162,6 +169,7 @@ fun HomeScreen(
         },
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier.centeredContentWidth(),
             contentPadding =
                 PaddingValues(
@@ -245,7 +253,7 @@ fun HomeScreen(
                         title = stringResource(R.string.category_components),
                         summary = stringResource(R.string.category_components_summary),
                         onClick = onOpenComponents,
-                        modifier = Modifier.padding(horizontal = Tokens.ScreenMargin).padding(top = 24.dp),
+                        modifier = Modifier.padding(horizontal = Tokens.ScreenMargin).padding(top = 16.dp),
                     )
                 }
             }
