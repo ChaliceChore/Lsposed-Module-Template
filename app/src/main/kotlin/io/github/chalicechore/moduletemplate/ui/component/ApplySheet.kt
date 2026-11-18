@@ -415,14 +415,7 @@ private fun ColumnScope.PendingSheet(
     // Back at peek, start the list from the top again so the next drag moves the sheet, not the list.
     LaunchedEffect(collapsed) { if (collapsed) listScroll.scrollTo(0) }
     val lineAlpha by animateFloatAsState(if (collapsed) 0f else 1f, label = "sheetLine")
-    Box(
-        Modifier
-            .padding(horizontal = Tokens.RowPadding * 2)
-            .fillMaxWidth()
-            .height(1.dp)
-            .graphicsLayer { alpha = lineAlpha }
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), CircleShape),
-    )
+    SubtleDivider(Modifier.padding(horizontal = Tokens.RowPadding).graphicsLayer { alpha = lineAlpha })
     Column(
         modifier =
             Modifier

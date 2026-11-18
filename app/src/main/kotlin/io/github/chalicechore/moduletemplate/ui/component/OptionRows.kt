@@ -69,6 +69,8 @@ import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.flow.first
+import androidx.compose.ui.platform.LocalFocusManager
+import kotlinx.coroutines.flow.dropWhile
 
 /**
  * #8 A "PREVIEW" frame for drawing the target's UI at its real size. The module draws [content];
@@ -315,6 +317,16 @@ fun TryOutCard(
         if (!focused) return@LaunchedEffect
         snapshotFlow { imeTarget.getBottom(density) > 0 }.first { it }
         bringIntoView.bringIntoView()
+    }
+    // Closing the keyboard (Back, its hide key, a gesture) leaves the field focused, so the next
+    // tap wouldn't count as a new focus and the scroll above wouldn't run. Drop focus instead.
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(focused) {
+        if (!focused) return@LaunchedEffect
+        snapshotFlow { imeTarget.getBottom(density) > 0 }
+            .dropWhile { !it }
+            .first { !it }
+        focusManager.clearFocus()
     }
     Surface(
         shape = RoundedCornerShape(Tokens.OuterRowCorner),

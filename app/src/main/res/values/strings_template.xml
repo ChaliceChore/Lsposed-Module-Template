@@ -231,7 +231,7 @@
     <string name="about_licenses">Open source licenses</string>
     <string name="about_licenses_summary">Libraries this app uses</string>
     <string name="about_star_on_github">Star on GitHub</string>
-    <string name="about_kofi">Ko-fi</string>
+    <string name="about_kofi">Donate on Ko-fi</string>
     <string name="language_not_translated">Not translated yet</string>
     <!-- First-launch tour. %1$s: app name in titles, target app in bodies. -->
     <string name="tour_welcome_title">Welcome to %1$s</string>

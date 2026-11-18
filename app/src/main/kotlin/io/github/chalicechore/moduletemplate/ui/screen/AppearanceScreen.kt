@@ -83,7 +83,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.remember
 import java.text.Collator
 import java.util.Locale
-import androidx.compose.foundation.BorderStroke
+import io.github.chalicechore.moduletemplate.ui.component.SubtleDivider
 
 @Composable
 fun AppearanceScreen(
@@ -262,14 +262,13 @@ private fun <T> SegmentedChoiceRow(
                         }
                     },
                     modifier = itemModifier.semantics { role = Role.RadioButton },
-                    // Unselected options need a stronger fill and an outline to stand out from
-                    // the row's surfaceContainerHigh.
+                    // Unselected options get a tinted fill so they stand out from the row's
+                    // surfaceContainerHigh; the selected one keeps the primary fill.
                     colors =
                         ToggleButtonDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         ),
-                    border = if (mode == selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     shapes =
                         when {
                             stacked -> {
@@ -368,7 +367,7 @@ private fun LanguageRow(shape: Shape) {
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()).selectableGroup()) {
                 option(null)
-                HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                SubtleDivider(Modifier.padding(vertical = 8.dp))
                 translated.forEach { option(it) }
                 if (untranslated.isNotEmpty()) {
                     Text(

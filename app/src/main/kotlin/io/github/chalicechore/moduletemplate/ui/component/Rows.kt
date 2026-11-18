@@ -34,6 +34,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.chalicechore.moduletemplate.ui.theme.Tokens
 import me.zhanghai.compose.preference.Preference
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CircleShape
 
 enum class RowTrailing {
     Chevron,
@@ -224,5 +227,17 @@ fun NavigationRow(
             }
         },
         onClick = onClick,
+    )
+}
+
+/** A quiet 1 dp line: inset, rounded, onSurface at 12 %. Used between groups in sheets and dialogs. */
+@Composable
+fun SubtleDivider(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), CircleShape),
     )
 }
