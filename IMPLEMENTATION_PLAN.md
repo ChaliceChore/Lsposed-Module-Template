@@ -564,3 +564,69 @@ low-memory script.
 - **Help screen:** two headers: "Guide" (Show the tour again) and "Troubleshooting" (Feature
   health, Debug logging, Report a problem).
 - **Not in this step:** the "what's new" tour after updates.
+
+---
+
+## Testing feedback, batch 4 (collected 2026-11-18; plan: Phase L below)
+
+1. Tour: split the closing step. New step 7 temporarily shows the apply sheet (demo content: one example change row) with the spotlight on it and a tip on undoing a change (✕ or swipe past the point; release to remove). Step 8 is the closing card. The demo sheet must not touch real settings and disappears when the step ends.
+2. Batch 3 item 4 still happens (K1 hoisting didn't fix it): returning to Home from Help/About loses Home's scroll position.
+   Likely cause: on those screens the sheet is hidden, so the list's bottom inset drops to 0. Back on Home, the inset starts from 0 and animates up to the sheet's height. At inset 0 the list is shorter, so a position near the end gets clamped, and it stays clamped when the inset grows.
+   Fix: base the list inset on "changes are pending" rather than "the sheet is showing on this screen", so Home's padding never changes on a round trip. Verify on the device; if it still jumps, log the LazyListState index and offset across the round trip.
+3. Try it out: the result row shows above the keyboard on the first tap only (20261118-183504 vs -183510). Cause: the scroll-into-view runs when the field *gains focus*. Closing the keyboard with Back leaves the field focused, so the next tap only reopens the keyboard and no scroll runs; the field's own scroll brings just the field into view. Fix: the field loses focus whenever the keyboard closes, whether by Back, the keyboard's own hide button, or a gesture. Detect this through the IME insets, because Back goes to the keyboard and never reaches the app. The next tap then focuses the field again, and the existing on-focus card scroll runs.
+4. Appearance segments: remove the outline on unselected options; give them a tinted fill instead: `secondaryContainer` with `onSecondaryContainer` text, distinct from the row (surfaceContainerHigh) and from the selected option (primary). Check light, dark and pure black.
+5. Language dialog: the divider after "System default" becomes the subtle apply-sheet style (inset, rounded, onSurface at 12 %).
+6. About: "Ko-fi" button label → "Donate on Ko-fi".
+7. Licences: merge duplicates in the AboutLibraries plugin (`duplicationMode = MERGE`, `duplicationRule = GROUP`), so e.g. dozens of AndroidX/Compose artifacts collapse into a few entries.
+
+---
+
+## Phase L: Testing feedback, batch 4 (2026-11-18)
+
+Feedback numbers from batch 4 are in brackets. One commit per step, built with the
+low-memory script.
+
+### L1. Small fixes [3, 4, 5, 6, 7]
+- **Try it out [3]:** `TryOutCard` watches the IME insets. When the keyboard finishes
+  closing (`imeAnimationTarget` back to 0) while the field is focused, it calls
+  `focusManager.clearFocus()`. The next tap focuses the field again, so the existing
+  on-focus scroll brings the whole card, result included, above the keyboard. The bottom
+  spacer and the single scroll from K4 stay.
+- **Appearance segments [4]:** drop the `BorderStroke`. Unselected options use
+  `secondaryContainer` with `onSecondaryContainer` text; the selected one keeps the default
+  (primary). Check light, dark and pure black, with Dynamic color both on and off.
+- **Language divider [5]:** the `HorizontalDivider` after "System default" becomes the
+  apply-sheet line: 1 dp, inset 16 dp each side, rounded, `onSurface` at 12 %. It goes in a
+  shared `SubtleDivider()` in Rows.kt; the apply sheet uses it too.
+- **Ko-fi [6]:** `about_kofi` = "Donate on Ko-fi". If the two buttons no longer fit side by
+  side, `AdaptiveButtonRow` already stacks them.
+- **Licences [7]:** the `aboutLibraries { }` block in app/build.gradle.kts gets
+  `library { duplicationMode = MERGE; duplicationRule = GROUP }`, so artifacts with the same
+  group merge into one entry. Count the entries before and after on the device.
+
+### L2. Home keeps its scroll position [2]
+- `ApplySheetScaffold` gets `reserveInset: Boolean`. Navigation passes "there is pending
+  sheet content", worked out *before* the per-screen filter from J5. `LocalApplySheetInset`
+  then stays at the peek height whenever changes are pending, even on screens where the sheet
+  is hidden. Home's bottom padding never changes on a round trip, so nothing gets clamped.
+- Screens without the sheet get some spare bottom padding while changes are pending. That's
+  harmless.
+- If the jump still shows on the device, add temporary debug logging of
+  `homeList.firstVisibleItemIndex/Offset` on leave and return, and fix from there.
+
+### L3. Tour: apply sheet step [1]
+- New `TourTarget.SHEET`. The sheet's content column is tagged with it.
+- New step 7, "Changes wait here": the spotlight frames the sheet, and the card sits above it.
+  - Text: "Changes you make collect here. Undo one with ✕, or swipe it sideways until it
+    turns red, then let go. Apply sends them all and restarts %1$s when needed."
+  - Step 8 is the closing card, now shorter: "You're all set. Replay this tour anytime from
+    Help."
+- **Demo content:** while step 7 is showing, Navigation passes the sheet a
+  `ApplySheetContent.Pending` built only for the tour. It has one example row ("Feature
+  one · General · On") whose ✕ does nothing, Apply/Discard that do nothing, and
+  `forceExpanded = true` so the row is visible below the peek block. Real settings are never
+  touched.
+- When the step ends (Next, Back or Skip), the real content comes back. If nothing is
+  pending, the sheet slides away.
+- The overlay already swallows taps, so the demo row can't be swiped during the tour; the
+  tip explains the gesture instead.
