@@ -43,8 +43,9 @@ import androidx.compose.ui.unit.dp
 import io.github.chalicechore.moduletemplate.R
 import io.github.chalicechore.moduletemplate.prefs.Appearance
 import io.github.chalicechore.moduletemplate.prefs.ThemeMode
+import com.materialkolor.dynamiccolor.ColorSpec
+import com.materialkolor.dynamiccolor.DynamicScheme
 import com.materialkolor.hct.Hct
-import com.materialkolor.scheme.DynamicScheme
 import com.materialkolor.scheme.SchemeTonalSpot
 import me.zhanghai.compose.preference.ProvidePreferenceTheme
 import me.zhanghai.compose.preference.preferenceTheme
@@ -163,14 +164,22 @@ fun ModuleTheme(
  * Brand colour shared by all ChaliceChore modules: Deep Cerulean Teal. Used when dynamic color is
  * off or unavailable, and as the accent in launcher icons. Keep it the same in every module.
  */
-val BrandSeed = Color(0xFF0E7C93)
+val BrandSeed = Color(0xFF187B97)
 
-/** Material's own tonal-spot scheme generated from [seed], the same algorithm Android uses. */
+/**
+ * Material's own tonal-spot scheme generated from [seed], the same algorithm Android uses.
+ * Uses the 2025 colour spec, the one Android 16 and later use for system dynamic colours.
+ */
 private fun seedColorScheme(
     seed: Color,
     dark: Boolean,
 ): ColorScheme {
-    val s: DynamicScheme = SchemeTonalSpot(Hct.fromInt(seed.toArgb()), isDark = dark, contrastLevel = 0.0)
+    val s: DynamicScheme = SchemeTonalSpot(
+            Hct.fromInt(seed.toArgb()),
+            isDark = dark,
+            contrastLevel = 0.0,
+            specVersion = ColorSpec.SpecVersion.SPEC_2025,
+        )
     fun c(argb: Int) = Color(argb)
     val base = if (dark) darkColorScheme() else lightColorScheme()
     return base.copy(

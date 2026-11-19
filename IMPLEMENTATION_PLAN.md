@@ -27,7 +27,7 @@ All decisions are settled.
 ## Phase A: Foundations
 
 ### A1. Brand colour and theme
-- The colour scheme is generated from the seed **Deep Cerulean Teal #0E7C93**, in light and dark.
+- The colour scheme is generated from the seed **Deep Cerulean Teal #187B97** (was #0E7C93 until Phase M2), in light and dark.
   It replaces the Graphite scheme. Dynamic color still overrides it when switched on.
 - **Pure black** setting: dark-mode surfaces become #000000. The setting is stored in the
   appearance prefs.
@@ -683,6 +683,11 @@ libxposed 102, checkout v7.0.1) is already the newest stable.
 - Check light, dark and pure black, with Dynamic color off (seed scheme) and on.
 - If the new version changes the generated colours noticeably, show the user screenshots
   before committing.
+- **Result (2026-11-19):** 6.0.0 moved `DynamicScheme` to `com.materialkolor.dynamiccolor` and
+  changed the default colour spec from SPEC_2021 to SPEC_2025. The user chose to switch to
+  SPEC_2025 (what Android 16+ uses) and picked a new seed from a comparison of hues 199–239°:
+  **#187B97** (hue 224°, 5° bluer than #0E7C93). Updated in `BrandSeed`, the launcher icon
+  background and the first colour-picker swatch. Every module adopting the template uses it.
 
 ### M3. Docs
 - `../GITHUB_RELEASE.md`: setup-java v6.3.0 and its commit hash (`gh api
