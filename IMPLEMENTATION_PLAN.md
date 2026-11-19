@@ -636,7 +636,9 @@ low-memory script.
 
 ---
 
-## Phase M: Toolchain upgrade (planned 2026-11-19)
+## Phase M: Toolchain upgrade (planned 2026-11-19; M1–M3 done, M4 on hold)
+
+**M4 is on hold** until the template leaves its testing phase (user, 2026-11-19).
 
 Versions checked on 2026-11-19 against Google Maven, Maven Central, Gradle and GitHub. Only
 stable releases. One commit per step; the template goes first, the modules follow only once
@@ -712,3 +714,10 @@ libxposed 102, checkout v7.0.1) is already the newest stable.
 - Per module: build in Termux, install, and check that the hook still works. Commit in the
   ones that are git repos; push only after the user confirms. A release (tag) is not part
   of this phase.
+
+---
+
+## Testing feedback, batch 5 (collected 2026-11-19)
+
+1. About: large bottom padding after the last row (Licences). Trim it to the normal end-of-list
+   spacing.
