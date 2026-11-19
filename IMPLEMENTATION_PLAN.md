@@ -694,6 +694,9 @@ libxposed 102, checkout v7.0.1) is already the newest stable.
   repos/actions/setup-java/commits/v6.3.0 --jq .sha`) in the pin table and both workflow
   snippets; update the "Current pins" date; AGP and Gradle versions where mentioned.
 - `docs/HANDOFF.md` stack line; README if it names versions.
+- **Result (2026-11-19):** setup-java pinned to v6.3.0
+  (`d1374f8ac74474200d16ef8ecee22c7ae7a51880`) in GITHUB_RELEASE.md, pins dated 2026-11-19,
+  AGP mention updated. README names no versions. HANDOFF stack line updated (private).
 
 ### M4. Roll out to the modules
 - One module at a time, from this session: wrapper 9.9.1, AGP 9.5.1 (or whatever M1
