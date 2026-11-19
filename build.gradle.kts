@@ -4,8 +4,8 @@ plugins {
     alias(libs.plugins.aboutlibraries.android) apply false
 }
 
-// Build output goes outside /storage/emulated (FUSE is slow and sync tools lock files).
-// Set buildRoot in local.properties.
+// Optional: set buildRoot in local.properties to put build output outside the repo, for example
+// when the repo sits on a slow or synced drive.
 val buildRoot =
     rootDir
         .resolve("local.properties")

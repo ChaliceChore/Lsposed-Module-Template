@@ -46,11 +46,46 @@ The UI layout is adapted from [hxreborn/playstore-adblock](https://github.com/hx
 
 Search for `TEMPLATE:` to find every place that needs a change.
 
-## Build (Termux)
+## Build
+
+Requirements: JDK 21 and the Android SDK (platform 37). Installing Android Studio gives you both.
+Open the folder in Android Studio, or build from a terminal:
 
 ```bash
-bash ./gradlew assembleDebug
+./gradlew assembleDebug      # app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-`local.properties` (gitignored) sets `sdk.dir` and `buildRoot`. See `GITHUB_RELEASE.md` in the
-modules folder for release signing and CI.
+On Windows, use `gradlew.bat` instead of `./gradlew`.
+
+`local.properties` (gitignored) holds machine-specific settings:
+
+```properties
+sdk.dir=/path/to/Android/Sdk                  # Android Studio writes this for you
+buildRoot=/path/outside/the/repo              # optional: where build output goes
+releaseSigning=/path/to/<module>-release.properties
+```
+
+### Release build
+
+```bash
+./gradlew assembleRelease    # app/build/outputs/apk/release/app-release.apk
+```
+
+Release builds are shrunk with R8. They're signed with the key described by the file that
+`releaseSigning` points to, which looks like this:
+
+```properties
+storeFile=/path/to/<module>-release.jks
+storePassword=…
+keyAlias=<module>
+keyPassword=…
+```
+
+The `SIGNING_STORE_FILE`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and
+`SIGNING_KEY_PASSWORD` environment variables take its place in CI. Without either, release builds
+fall back to the debug key, which is fine for testing but can't update a properly signed install.
+Use the same keystore on every machine and in CI, and keep a backup: Android won't update an app
+to a build signed with a different key.
+
+See `GITHUB_RELEASE.md` in the modules folder for creating a keystore and setting up CI.
