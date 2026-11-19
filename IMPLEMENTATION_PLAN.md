@@ -670,6 +670,12 @@ libxposed 102, checkout v7.0.1) is already the newest stable.
   Appearance (theme, dynamic color), About and Licences, the tour, Data (backup and
   restore).
 - Also build `assembleRelease` once, to check R8 with the new AGP and Kotlin.
+- **Result (2026-11-19):** Gradle 9.9.1, AGP 9.5.1 and Kotlin 2.4.21 build fine; Termux's
+  `aapt2` 16.0.0.4 works with AGP 9.5.1. Debug build 13 min clean. Release build OK (R8,
+  3.9 MB), but release lint needs `-XX:MaxMetaspaceSize=768m` on the phone (384m runs out).
+  Remaining warnings are material3 deprecations in our code, not from the toolchain:
+  `Slider` (old overload, 2 uses), `Icons.Outlined.HelpOutline` (use AutoMirrored),
+  `rememberModalBottomSheetState`.
 
 ### M2. Template: materialkolor 6.0.0
 - Read the 6.0.0 changelog for API changes. Adapt the theme code that builds the scheme
