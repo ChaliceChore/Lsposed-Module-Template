@@ -633,3 +633,68 @@ low-memory script.
   pending, the sheet slides away.
 - The overlay already swallows taps, so the demo row can't be swiped during the tour; the
   tip explains the gesture instead.
+
+---
+
+## Phase M: Toolchain upgrade (planned 2026-11-19)
+
+Versions checked on 2026-11-19 against Google Maven, Maven Central, Gradle and GitHub. Only
+stable releases. One commit per step; the template goes first, the modules follow only once
+the template builds and works on the device.
+
+| Software | Now | Target |
+|---|---|---|
+| Gradle wrapper | 9.8.0 | 9.9.1 |
+| AGP | 9.4.1 | 9.5.1 |
+| Kotlin (compose compiler plugin, KGP) | 2.3.21 | 2.4.21 |
+| materialkolor `material-color-utilities` | 5.0.1 | 6.0.0 (major) |
+| `actions/setup-java` (workflows, GITHUB_RELEASE.md) | v6.2.0 | v6.3.0 |
+| JDK | 21 | stays 21 (LTS; Android Studio's bundled JBR; Termux has openjdk-21) |
+| `gradle/actions` | v5.0.2 | stays v5 (v6 caching is under proprietary terms) |
+
+Everything else (Compose BOM 2026.09.00, material3 1.5.0-rc01, activity, appcompat,
+lifecycle, navigation3, splashscreen, coroutines, AboutLibraries, compose-preferences,
+libxposed 102, checkout v7.0.1) is already the newest stable.
+
+### M1. Template: Gradle, AGP, Kotlin
+- `bash ./gradlew wrapper --gradle-version 9.9.1`, then run it a second time so the
+  wrapper scripts and jar update too. Check `distributionSha256Sum` if set.
+- `libs.versions.toml`: `agp = "9.5.1"`, `kotlin = "2.4.21"`.
+- Build with the low-memory script. Read every new warning and deprecation; fix them in
+  this step if they're small, otherwise note them here.
+- **Termux risk:** the phone build uses Termux's `aapt2` 16.0.0.4 (the Maven one is x86-64
+  only). If AGP 9.5.1 rejects it or the resources break, try AGP 9.5.0; if that fails too,
+  stay on AGP 9.4.1 and keep only Gradle and Kotlin. Record the outcome here and in
+  `TERMUX_BUILD.md`.
+- Install, then check on the device: launch, Home, a category, apply and restart, Search,
+  Appearance (theme, dynamic color), About and Licences, the tour, Data (backup and
+  restore).
+- Also build `assembleRelease` once, to check R8 with the new AGP and Kotlin.
+
+### M2. Template: materialkolor 6.0.0
+- Read the 6.0.0 changelog for API changes. Adapt the theme code that builds the scheme
+  from the seed `#0E7C93`.
+- Check light, dark and pure black, with Dynamic color off (seed scheme) and on.
+- If the new version changes the generated colours noticeably, show the user screenshots
+  before committing.
+
+### M3. Docs
+- `../GITHUB_RELEASE.md`: setup-java v6.3.0 and its commit hash (`gh api
+  repos/actions/setup-java/commits/v6.3.0 --jq .sha`) in the pin table and both workflow
+  snippets; update the "Current pins" date; AGP and Gradle versions where mentioned.
+- `docs/HANDOFF.md` stack line; README if it names versions.
+
+### M4. Roll out to the modules
+- One module at a time, from this session: wrapper 9.9.1, AGP 9.5.1 (or whatever M1
+  settled on), Kotlin 2.4.21 where the module uses Kotlin. Leave each module's library
+  versions alone; that's for the module's own session or the adoption of this template.
+- Modules: Audio Ducking Disable, Contact Names after Boot, Custom Tab Router, Drive
+  Download Folder, DualDial, GitHub Image Overlay (wrapper 9.8.1), Google Messages Tweaks,
+  Overboard, QS Tile Search, Sony LIV Ad Mute, Swiggy Ad Block, Swiggy Auto-Rate Delivery,
+  Uber Ad Block, Undo Notification Swipe.
+- The three with workflows (Contact Names after Boot, Custom Tab Router, QS Tile Search):
+  bump the setup-java pin to v6.3.0. Their Dependabot may already have a PR open for it;
+  merge that instead of duplicating it.
+- Per module: build in Termux, install, and check that the hook still works. Commit in the
+  ones that are git repos; push only after the user confirms. A release (tag) is not part
+  of this phase.
